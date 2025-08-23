@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pointer</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 250px;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .option {
+            margin-bottom: 15px;
+        }
+
+        select,
+        input[type="text"] {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        #customLangInputContainer {
+            margin-top: 5px;
+            display: none;
+        }
+
+        .input-help {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .settings-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #4285f4;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .settings-link:hover {
+            text-decoration: underline;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .toggle-switch label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 20px;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: #4285f4;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        input.invalid {
+            border-color: #e53935;
+            background-color: rgba(229, 57, 53, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title" data-i18n="popupTitle">Pointer</div>
+
+    <div class="option">
+        <label for="targetLang" data-i18n="labelTargetLang">Target Language:</label>
+        <select id="targetLang">
+            <option value="zh">Chinese</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="ru">Russian</option>
+            <option value="other" data-i18n="optionOther">Other...</option>
+        </select>
+        <div id="customLangInputContainer">
+            <label for="customTargetLang" data-i18n="labelCustomTargetLang">Custom Language Code:</label>
+            <input type="text" id="customTargetLang" placeholder="e.g., pt, it">
+            <div class="input-help" data-i18n="customLangHelp">Use standard language codes: pt (Portuguese), it
+                (Italian), etc.</div>
+        </div>
+    </div>
+
+    <div class="option">
+        <div class="toggle-switch">
+            <label>
+                <span data-i18n="toggleDisplay">Display translation button</span>
+                <input type="checkbox" id="showButton">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <a href="#" id="openOptions" class="settings-link" data-i18n="settingsAdvanced">Advanced Settings</a>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

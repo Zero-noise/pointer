@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pointer Options</title>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --primary-hover: #3367d6;
+            --success-color: #34a853;
+            --success-hover: #2d8a46;
+            --error-color: #ea4335;
+            --border-color: #e0e0e0;
+            --background-light: #f9f9f9;
+            --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: var(--background-light);
+            line-height: 1.6;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 30px;
+            transition: all var(--transition-speed);
+        }
+
+        h1 {
+            font-size: 28px;
+            color: var(--primary-color);
+            margin-top: 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        h1::before {
+            content: "";
+            width: 4px;
+            height: 24px;
+            background-color: var(--primary-color);
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all var(--transition-speed);
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+            outline: none;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            padding-left: 2px;
+        }
+
+        .status {
+            padding: 12px 16px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success {
+            background-color: #d6f0d0;
+            color: var(--success-color);
+            border-left: 4px solid var(--success-color);
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: var(--error-color);
+            border-left: 4px solid var(--error-color);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 25px 0 15px;
+            color: #333;
+        }
+
+        .api-section,
+        .model-section,
+        .basic-settings {
+            padding: 25px;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: var(--card-shadow);
+            transition: all var(--transition-speed);
+        }
+
+        .api-section:hover,
+        .model-section:hover,
+        .basic-settings:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-section {
+            border-top: 4px solid var(--primary-color);
+        }
+
+        .model-section {
+            border-top: 4px solid #fbbc05;
+        }
+
+        .basic-settings {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .loading {
+            display: inline-block;
+            margin-left: 10px;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .verify-button {
+            background-color: var(--success-color);
+        }
+
+        .verify-button:hover {
+            background-color: var(--success-hover);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider-container input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            outline: none;
+            border-radius: 10px;
+            appearance: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            background: var(--primary-hover);
+        }
+
+        .slider-container span {
+            width: 50px;
+            text-align: center;
+            font-weight: 500;
+            color: var(--primary-color);
+            background-color: rgba(66, 133, 244, 0.1);
+            padding: 5px 8px;
+            border-radius: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-icon {
+            margin-right: 12px;
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(66, 133, 244, 0.1);
+            border-radius: 8px;
+            color: var(--primary-color);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .model-search-container {
+            position: relative;
+        }
+
+        #modelSearch {
+            cursor: pointer;
+            background-color: white;
+        }
+
+        #modelSearch:focus {
+            cursor: text;
+        }
+
+        .model-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .model-dropdown.show {
+            display: block;
+        }
+
+        .model-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background-color var(--transition-speed);
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+
+        .model-item:last-child {
+            border-bottom: none;
+        }
+
+        .model-item:hover {
+            background-color: rgba(66, 133, 244, 0.08);
+        }
+
+        .model-item.selected {
+            background-color: rgba(66, 133, 244, 0.15);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .model-item.highlighted {
+            background-color: rgba(66, 133, 244, 0.1);
+        }
+
+        .no-models {
+            padding: 10px 12px;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+        }
+
+        /* Custom select styling for Interface Settings */
+        .custom-select-container {
+            position: relative;
+        }
+
+        .custom-select-container input[type="text"] {
+            cursor: pointer;
+            background-color: white;
+        }
+
+        .custom-select-container input[type="text"]:focus {
+            cursor: pointer;
+        }
+
+        .custom-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-dropdown.show {
+            display: block;
+        }
+
+        .custom-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background-color var(--transition-speed);
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+
+        .custom-item:last-child {
+            border-bottom: none;
+        }
+
+        .custom-item:hover {
+            background-color: rgba(66, 133, 244, 0.08);
+        }
+
+        .custom-item.selected {
+            background-color: rgba(66, 133, 244, 0.15);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .custom-item.highlighted {
+            background-color: rgba(66, 133, 244, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 data-i18n="title">Pointer Settings</h1>
+
+        <div class="api-section">
+            <div class="section-header">
+                <div class="section-icon">🔑</div>
+                <div class="section-title" data-i18n="apiConfig">API Configuration</div>
+            </div>
+
+            <div class="form-group">
+                <label for="apiKey" data-i18n="labelApiKey">API Key:</label>
+                <input type="password" id="apiKey" placeholder="Enter your API key">
+                <div class="hint" data-i18n="hintApiKey">Your API key will be stored securely in your browser.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="baseUrl" data-i18n="labelBaseUrl">API Base URL:</label>
+                <input type="text" id="baseUrl" placeholder="Enter API base URL">
+                <div class="hint" data-i18n="hintBaseUrl">For OpenAI: https://api.openai.com/v1</div>
+            </div>
+
+            <button id="verifyButton" class="verify-button" data-i18n="buttonVerify">Verify API & Load Models</button>
+            <div id="verifyStatus" class="status"></div>
+        </div>
+
+        <div class="model-section" id="modelSection">
+            <div class="section-header">
+                <div class="section-icon">🤖</div>
+                <div class="section-title" data-i18n="modelConfig">AI Model Configuration</div>
+            </div>
+
+            <div class="form-group model-option">
+                <label for="model" data-i18n="labelModel">Select AI Model:</label>
+                <div class="model-search-container">
+                    <input type="text" id="modelSearch" placeholder="Type to search models..." readonly>
+                    <div class="model-dropdown" id="modelDropdown">
+                        <div class="model-item">Loading models...</div>
+                    </div>
+                </div>
+                <input type="hidden" id="model" value="">
+                <div class="hint" data-i18n="hintModel">Type to search and select the AI model to use for translation</div>
+            </div>
+
+            <button id="saveApiButton" data-i18n="buttonSaveApi">Save AI Model</button>
+            <div id="apiStatusMessage" class="status"></div>
+        </div>
+
+        <div class="basic-settings">
+            <div class="section-header">
+                <div class="section-icon">⚙️</div>
+                <div class="section-title" data-i18n="interfaceSettings">Interface Settings</div>
+            </div>
+
+            <div class="form-group">
+                <label for="uiLang" data-i18n="labelUiLang">Interface Language:</label>
+                <div class="custom-select-container">
+                    <input type="text" id="uiLangSearch" placeholder="Select language..." readonly>
+                    <div class="custom-dropdown" id="uiLangDropdown">
+                        <!-- Language options will be generated dynamically by JavaScript -->
+                    </div>
+                </div>
+                <input type="hidden" id="uiLang" value="en">
+                <div class="hint" data-i18n="hintUiLang">Set the display language of the interface</div>
+            </div>
+
+            <div class="form-group">
+                <label for="buttonPosition" data-i18n="labelButtonPosition">Initial Button Position:</label>
+                <div class="custom-select-container">
+                    <input type="text" id="buttonPositionSearch" placeholder="Select position..." readonly>
+                    <div class="custom-dropdown" id="buttonPositionDropdown">
+                        <div class="custom-item" data-value="bottom-right" data-i18n="optionPosBottomRight">Bottom Right</div>
+                        <div class="custom-item" data-value="bottom-left" data-i18n="optionPosBottomLeft">Bottom Left</div>
+                        <div class="custom-item" data-value="top-right" data-i18n="optionPosTopRight">Top Right</div>
+                        <div class="custom-item" data-value="top-left" data-i18n="optionPosTopLeft">Top Left</div>
+                        <div class="custom-item" data-value="custom" data-i18n="optionPosCustom">Custom Position</div>
+                    </div>
+                </div>
+                <input type="hidden" id="buttonPosition" value="bottom-right">
+                <div class="hint" data-i18n="hintButtonPosition">You can also drag the button on any webpage to set a
+                    custom position</div>
+            </div>
+
+            <div class="form-group">
+                <label for="buttonSize" data-i18n="labelButtonSize">Button Size:</label>
+                <div class="slider-container">
+                    <input type="range" id="buttonSize" min="32" max="128" step="4" value="64">
+                    <span id="buttonSizeValue">64px</span>
+                </div>
+                <div class="hint" data-i18n="hintButtonSize">Adjust the size of the translation button</div>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="autoSave">
+                    <span data-i18n="labelAutoSave">Auto-save settings</span>
+                </label>
+                <div class="hint" data-i18n="hintAutoSave">Automatically save interface settings when you make changes</div>
+            </div>
+
+            <button id="saveButton" data-i18n="buttonSave">Save Interface Settings</button>
+            <div id="statusMessage" class="status"></div>
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>
