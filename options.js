@@ -16,10 +16,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const verifyButton = document.getElementById('verifyButton');
     const verifyStatus = document.getElementById('verifyStatus');
     const modelSection = document.getElementById('modelSection');
+    const navModelLink = document.getElementById('navModelLink');
     const buttonSizeSlider = document.getElementById('buttonSize');
     const buttonSizeValue = document.getElementById('buttonSizeValue');
     const uiLangSelect = document.getElementById('uiLang');
     const autoSaveCheckbox = document.getElementById('autoSave');
+    const saveAllButton = document.getElementById('saveAllButton');
+    const resetDefaultsButton = document.getElementById('resetDefaultsButton');
+    const clearCredentialsButton = document.getElementById('clearCredentialsButton');
+    const unsavedDot = document.getElementById('unsavedDot');
+    const navLinks = document.querySelectorAll('.nav-link');
 
     // 默认隐藏模型部分，直到API验证成功
     modelSection.classList.add('hidden');
@@ -34,62 +40,52 @@ document.addEventListener('DOMContentLoaded', function () {
         en: {
             code: 'en',
             name: 'English',
-            nativeName: 'English',
-            flag: '🇺🇸'
+            nativeName: 'English'
         },
         zh: {
             code: 'zh',
             name: 'Chinese',
-            nativeName: '中文',
-            flag: '🇨🇳'
+            nativeName: '中文'
         },
         ja: {
             code: 'ja',
             name: 'Japanese',
-            nativeName: '日本語',
-            flag: '🇯🇵'
+            nativeName: '日本語'
         },
         fr: {
             code: 'fr',
             name: 'French',
-            nativeName: 'Français',
-            flag: '🇫🇷'
+            nativeName: 'Français'
         },
         de: {
             code: 'de',
             name: 'German',
-            nativeName: 'Deutsch',
-            flag: '🇩🇪'
+            nativeName: 'Deutsch'
         },
         es: {
             code: 'es',
             name: 'Spanish',
-            nativeName: 'Español',
-            flag: '🇪🇸'
+            nativeName: 'Español'
         },
         ko: {
             code: 'ko',
             name: 'Korean',
-            nativeName: '한국어',
-            flag: '🇰🇷'
+            nativeName: '한국어'
         },
         pt: {
             code: 'pt',
             name: 'Portuguese',
-            nativeName: 'Português',
-            flag: '🇵🇹'
+            nativeName: 'Português'
         },
         ru: {
             code: 'ru',
             name: 'Russian',
-            nativeName: 'Русский',
-            flag: '🇷🇺'
+            nativeName: 'Русский'
         },
         it: {
             code: 'it',
             name: 'Italian',
-            nativeName: 'Italiano',
-            flag: '🇮🇹'
+            nativeName: 'Italiano'
         }
     };
 
@@ -123,7 +119,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Auto-save settings',
             hintAutoSave: 'Automatically save interface settings when you make changes',
             statusSaveSuccess: 'Settings saved successfully!',
-            statusApiSaveSuccess: 'AI model saved successfully!'
+            statusApiSaveSuccess: 'AI model saved successfully!',
+            navTitle: 'Settings',
+            navApi: 'API',
+            navModel: 'Model',
+            navInterface: 'Interface',
+            actionBarLabel: 'Changes',
+            buttonSaveAll: 'Save All',
+            buttonResetDefaults: 'Reset Defaults',
+            buttonClearCredentials: 'Clear Credentials'
         },
         zh: {
             title: 'Pointer 设置',
@@ -154,7 +158,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: '自动保存设置',
             hintAutoSave: '当您做出更改时自动保存界面设置',
             statusSaveSuccess: '设置已成功保存！',
-            statusApiSaveSuccess: 'AI模型已成功保存！'
+            statusApiSaveSuccess: 'AI模型已成功保存！',
+            navTitle: '设置',
+            navApi: 'API',
+            navModel: '模型',
+            navInterface: '界面',
+            actionBarLabel: '更改未保存',
+            buttonSaveAll: '保存全部',
+            buttonResetDefaults: '恢复默认',
+            buttonClearCredentials: '清除凭据'
         },
         ja: {
             title: 'Pointer 設定',
@@ -185,7 +197,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: '設定を自動保存',
             hintAutoSave: '変更を行う際に自動的にインターフェース設定を保存します',
             statusSaveSuccess: '設定が正常に保存されました！',
-            statusApiSaveSuccess: 'AIモデルが正常に保存されました！'
+            statusApiSaveSuccess: 'AIモデルが正常に保存されました！',
+            navTitle: '設定',
+            navApi: 'API',
+            navModel: 'モデル',
+            navInterface: 'インターフェース',
+            actionBarLabel: '変更',
+            buttonSaveAll: 'すべて保存',
+            buttonResetDefaults: 'デフォルトに戻す',
+            buttonClearCredentials: '認証情報を消去'
         },
         fr: {
             title: 'Paramètres Pointer',
@@ -216,7 +236,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Sauvegarde automatique',
             hintAutoSave: 'Enregistrer automatiquement les paramètres de l\'interface lorsque vous apportez des modifications',
             statusSaveSuccess: 'Paramètres enregistrés avec succès !',
-            statusApiSaveSuccess: 'Modèle IA enregistré avec succès !'
+            statusApiSaveSuccess: 'Modèle IA enregistré avec succès !',
+            navTitle: 'Paramètres',
+            navApi: 'API',
+            navModel: 'Modèle',
+            navInterface: 'Interface',
+            actionBarLabel: 'Modifications',
+            buttonSaveAll: 'Tout enregistrer',
+            buttonResetDefaults: 'Réinitialiser',
+            buttonClearCredentials: 'Effacer les identifiants'
         },
         de: {
             title: 'Pointer-Einstellungen',
@@ -247,7 +275,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Automatisches Speichern',
             hintAutoSave: 'Benutzeroberflächen-Einstellungen automatisch speichern, wenn Sie Änderungen vornehmen',
             statusSaveSuccess: 'Einstellungen erfolgreich gespeichert!',
-            statusApiSaveSuccess: 'KI-Modell erfolgreich gespeichert!'
+            statusApiSaveSuccess: 'KI-Modell erfolgreich gespeichert!',
+            navTitle: 'Einstellungen',
+            navApi: 'API',
+            navModel: 'Modell',
+            navInterface: 'Oberfläche',
+            actionBarLabel: 'Änderungen',
+            buttonSaveAll: 'Alle speichern',
+            buttonResetDefaults: 'Zurücksetzen',
+            buttonClearCredentials: 'Zugangsdaten löschen'
         },
         es: {
             title: 'Configuración de Pointer',
@@ -278,7 +314,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Guardado automático',
             hintAutoSave: 'Guardar automáticamente la configuración de interfaz cuando realice cambios',
             statusSaveSuccess: '¡Configuración guardada exitosamente!',
-            statusApiSaveSuccess: '¡Modelo de IA guardado exitosamente!'
+            statusApiSaveSuccess: '¡Modelo de IA guardado exitosamente!',
+            navTitle: 'Configuración',
+            navApi: 'API',
+            navModel: 'Modelo',
+            navInterface: 'Interfaz',
+            actionBarLabel: 'Cambios',
+            buttonSaveAll: 'Guardar todo',
+            buttonResetDefaults: 'Restablecer',
+            buttonClearCredentials: 'Borrar credenciales'
         },
         ko: {
             title: 'Pointer 설정',
@@ -309,7 +353,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: '자동 저장',
             hintAutoSave: '변경 사항을 적용할 때 인터페이스 설정을 자동으로 저장',
             statusSaveSuccess: '설정이 성공적으로 저장되었습니다!',
-            statusApiSaveSuccess: 'AI 모델이 성공적으로 저장되었습니다!'
+            statusApiSaveSuccess: 'AI 모델이 성공적으로 저장되었습니다!',
+            navTitle: '설정',
+            navApi: 'API',
+            navModel: '모델',
+            navInterface: '인터페이스',
+            actionBarLabel: '변경 사항',
+            buttonSaveAll: '전체 저장',
+            buttonResetDefaults: '기본값으로',
+            buttonClearCredentials: '자격 증명 지우기'
         },
         pt: {
             title: 'Configurações do Pointer',
@@ -340,7 +392,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Salvamento automático',
             hintAutoSave: 'Salvar automaticamente as configurações da interface quando você fizer alterações',
             statusSaveSuccess: 'Configurações salvas com sucesso!',
-            statusApiSaveSuccess: 'Modelo de IA salvo com sucesso!'
+            statusApiSaveSuccess: 'Modelo de IA salvo com sucesso!',
+            navTitle: 'Configurações',
+            navApi: 'API',
+            navModel: 'Modelo',
+            navInterface: 'Interface',
+            actionBarLabel: 'Alterações',
+            buttonSaveAll: 'Salvar tudo',
+            buttonResetDefaults: 'Redefinir',
+            buttonClearCredentials: 'Limpar credenciais'
         },
         ru: {
             title: 'Настройки Pointer',
@@ -371,7 +431,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Автосохранение',
             hintAutoSave: 'Автоматически сохранять настройки интерфейса при внесении изменений',
             statusSaveSuccess: 'Настройки успешно сохранены!',
-            statusApiSaveSuccess: 'ИИ модель успешно сохранена!'
+            statusApiSaveSuccess: 'ИИ модель успешно сохранена!',
+            navTitle: 'Настройки',
+            navApi: 'API',
+            navModel: 'Модель',
+            navInterface: 'Интерфейс',
+            actionBarLabel: 'Изменения',
+            buttonSaveAll: 'Сохранить всё',
+            buttonResetDefaults: 'Сбросить',
+            buttonClearCredentials: 'Очистить данные'
         },
         it: {
             title: 'Impostazioni Pointer',
@@ -402,7 +470,15 @@ document.addEventListener('DOMContentLoaded', function () {
             labelAutoSave: 'Salvataggio automatico',
             hintAutoSave: 'Salva automaticamente le impostazioni dell\'interfaccia quando apporti modifiche',
             statusSaveSuccess: 'Impostazioni salvate con successo!',
-            statusApiSaveSuccess: 'Modello IA salvato con successo!'
+            statusApiSaveSuccess: 'Modello IA salvato con successo!',
+            navTitle: 'Impostazioni',
+            navApi: 'API',
+            navModel: 'Modello',
+            navInterface: 'Interfaccia',
+            actionBarLabel: 'Modifiche',
+            buttonSaveAll: 'Salva tutto',
+            buttonResetDefaults: 'Ripristina',
+            buttonClearCredentials: 'Cancella credenziali'
         }
     };
 
@@ -415,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const item = document.createElement('div');
             item.className = 'dropdown-item custom-item';
             item.dataset.value = lang.code;
-            item.textContent = `${lang.flag} ${lang.nativeName}`;
+            item.textContent = lang.nativeName;
             uiLangDropdown.appendChild(item);
         });
     }
@@ -423,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Helper function to get language display name
     function getLanguageDisplayName(langCode) {
         const lang = supportedLanguages[langCode];
-        return lang ? `${lang.flag} ${lang.nativeName}` : langCode;
+        return lang ? lang.nativeName : langCode;
     }
 
     function applyTranslations(lang) {
@@ -486,6 +562,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         
         hideModelDropdown();
+        // Mark unsaved change for model selection
+        showUnsavedIndicator();
     }
     
     function filterModels(searchTerm) {
@@ -747,10 +825,14 @@ document.addEventListener('DOMContentLoaded', function () {
     buttonSizeSlider.addEventListener('input', function () {
         buttonSizeValue.textContent = `${this.value}px`;
         autoSaveIfEnabled();
+        markUnsavedIfNeeded();
     });
 
     // Auto-save when interface settings change
-    buttonPositionSelect.addEventListener('change', autoSaveIfEnabled);
+    buttonPositionSelect.addEventListener('change', function() {
+        autoSaveIfEnabled();
+        markUnsavedIfNeeded();
+    });
     uiLangSelect.addEventListener('change', function() {
         // Apply translations immediately when language changes
         applyTranslations(this.value);
@@ -759,7 +841,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             const selectedLang = supportedLanguages[this.value];
             if (selectedLang) {
-                uiLangSearch.value = `${selectedLang.flag} ${selectedLang.nativeName}`;
+                uiLangSearch.value = selectedLang.nativeName;
             }
             
             const selectedPosItem = buttonPositionDropdown.querySelector(`[data-value="${buttonPositionSelect.value}"]`);
@@ -769,11 +851,116 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 50);
         
         autoSaveIfEnabled();
+        markUnsavedIfNeeded();
     });
 
     // Save auto-save preference immediately when changed
     autoSaveCheckbox.addEventListener('change', function() {
         chrome.storage.sync.set({ autoSave: this.checked });
+    });
+
+    // Save All button: saves interface settings and model if selected
+    if (saveAllButton) {
+        saveAllButton.addEventListener('click', function() {
+            saveInterfaceSettings(true);
+            if (modelSelect.value) {
+                chrome.storage.sync.set({ model: modelSelect.value }, function () {
+                    showApiStatus(translations[uiLangSelect.value].statusApiSaveSuccess, 'success');
+                });
+            }
+            hideUnsavedIndicator();
+        });
+    }
+
+    // Reset Defaults: set interface defaults without saving
+    if (resetDefaultsButton) {
+        resetDefaultsButton.addEventListener('click', function() {
+            // Defaults
+            uiLangSelect.value = 'en';
+            const selectedLang = supportedLanguages['en'];
+            if (selectedLang) {
+                uiLangSearch.value = selectedLang.nativeName;
+            }
+            buttonPositionSelect.value = 'bottom-right';
+            const selectedPosItem = buttonPositionDropdown.querySelector('[data-value="bottom-right"]');
+            if (selectedPosItem) {
+                buttonPositionSearch.value = selectedPosItem.textContent;
+            }
+            buttonSizeSlider.value = 64;
+            buttonSizeValue.textContent = '64px';
+            autoSaveCheckbox.checked = false;
+
+            // Apply translations immediately
+            applyTranslations(uiLangSelect.value);
+
+            showUnsavedIndicator();
+        });
+    }
+
+    // Clear Credentials: remove apiKey/baseUrl/model and reset inputs
+    if (clearCredentialsButton) {
+        clearCredentialsButton.addEventListener('click', function() {
+            chrome.storage.sync.remove(['apiKey','baseUrl','model'], function() {
+                apiKeyInput.value = '';
+                baseUrlInput.value = '';
+                modelSelect.value = '';
+                modelSearchInput.value = '';
+                modelDropdown.innerHTML = '<div class="dropdown-item">Cleared. Verify again to load models.</div>';
+                modelSection.classList.add('hidden');
+                modelSection.classList.remove('visible');
+                if (navModelLink) {
+                    navModelLink.classList.add('hidden');
+                }
+                showVerifyStatus('Credentials cleared. Please enter new API key and base URL.', 'success');
+            });
+        });
+    }
+
+    // Unsaved changes indicator helpers
+    function showUnsavedIndicator() {
+        if (unsavedDot) unsavedDot.classList.remove('hidden');
+    }
+    function hideUnsavedIndicator() {
+        if (unsavedDot) unsavedDot.classList.add('hidden');
+    }
+    function markUnsavedIfNeeded() {
+        if (!autoSaveCheckbox.checked) {
+            showUnsavedIndicator();
+        }
+    }
+
+    // Scrollspy for sidebar navigation
+    const sectionMap = [
+        { id: 'apiSection', key: 'api' },
+        { id: 'modelSection', key: 'model' },
+        { id: 'interfaceSection', key: 'interface' }
+    ];
+    const linkByKey = {};
+    navLinks.forEach(link => { linkByKey[link.dataset.nav] = link; });
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const sec = sectionMap.find(s => s.id === entry.target.id);
+            if (!sec) return;
+            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                navLinks.forEach(l => l.classList.remove('active'));
+                if (linkByKey[sec.key]) linkByKey[sec.key].classList.add('active');
+            }
+        });
+    }, { threshold: [0.55] });
+    sectionMap.forEach(s => {
+        const el = document.getElementById(s.id);
+        if (el) observer.observe(el);
+    });
+    // Smooth scroll on click
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
     });
 
     // Verify API and load models
@@ -834,6 +1021,9 @@ document.addEventListener('DOMContentLoaded', function () {
             showVerifyStatus(`API verified successfully! ${models.length} models loaded.`, 'success');
             modelSection.classList.remove('hidden');
             modelSection.classList.add('visible');
+            if (navModelLink) {
+                navModelLink.classList.remove('hidden');
+            }
 
             // Save API settings only (no longer cache model list)
             chrome.storage.sync.set({
@@ -848,6 +1038,9 @@ document.addEventListener('DOMContentLoaded', function () {
             showVerifyStatus(`API verification failed: ${error.message}`, 'error');
             modelSection.classList.add('hidden');
             modelSection.classList.remove('visible');
+            if (navModelLink) {
+                navModelLink.classList.add('hidden');
+            }
         } finally {
             verifyButton.disabled = false;
             verifyButton.innerHTML = `<span>${translations[uiLangSelect.value].buttonVerify || 'Verify API & Load Models'}</span>`;

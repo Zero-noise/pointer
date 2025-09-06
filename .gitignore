@@ -1,6 +1,7 @@
 # User specified files to ignore
 AGENTS.md
 SAAS_DEVELOPMENT_PLAN.md
+CLAUDE.md
 
 # macOS system files
 .DS_Store
