@@ -10,30 +10,83 @@ document.addEventListener('DOMContentLoaded', function () {
     const popupTranslations = {
         en: {
             popupTitle: 'Pointer',
-            labelTargetLang: 'Target Language:',
-            toggleDisplay: 'Display translation button',
+            labelTargetLang: 'Target Language',
+            toggleDisplay: 'Show button',
             settingsAdvanced: 'Advanced Settings',
             optionOther: 'Other...',
-            labelCustomTargetLang: 'Custom Language Code:',
-            customLangHelp: 'Use standard language codes: pt (Portuguese), it (Italian), etc.'
+            customLangHelp: 'ISO code'
         },
         zh: {
             popupTitle: 'Pointer',
-            labelTargetLang: '目标语言：',
-            toggleDisplay: '显示翻译按钮',
+            labelTargetLang: '目标语言',
+            toggleDisplay: '显示按钮',
             settingsAdvanced: '高级设置',
             optionOther: '其他...',
-            labelCustomTargetLang: '自定义语言代码：',
-            customLangHelp: '使用标准语言代码：pt（葡萄牙语），it（意大利语）等'
+            customLangHelp: 'ISO 代码'
         },
         ja: {
             popupTitle: 'Pointer',
-            labelTargetLang: '対象言語：',
-            toggleDisplay: '翻訳ボタンを表示',
+            labelTargetLang: '対象言語',
+            toggleDisplay: 'ボタン表示',
             settingsAdvanced: '詳細設定',
             optionOther: 'その他...',
-            labelCustomTargetLang: 'カスタム言語コード：',
-            customLangHelp: '標準言語コードを使用：pt（ポルトガル語）、it（イタリア語）など'
+            customLangHelp: 'ISO コード'
+        },
+        fr: {
+            popupTitle: 'Pointer',
+            labelTargetLang: 'Langue cible',
+            toggleDisplay: 'Afficher bouton',
+            settingsAdvanced: 'Paramètres avancés',
+            optionOther: 'Autre...',
+            customLangHelp: 'Code ISO'
+        },
+        de: {
+            popupTitle: 'Pointer',
+            labelTargetLang: 'Zielsprache',
+            toggleDisplay: 'Button anzeigen',
+            settingsAdvanced: 'Erweiterte Einstellungen',
+            optionOther: 'Andere...',
+            customLangHelp: 'ISO-Code'
+        },
+        es: {
+            popupTitle: 'Pointer',
+            labelTargetLang: 'Idioma',
+            toggleDisplay: 'Mostrar botón',
+            settingsAdvanced: 'Configuración avanzada',
+            optionOther: 'Otro...',
+            customLangHelp: 'Código ISO'
+        },
+        ko: {
+            popupTitle: 'Pointer',
+            labelTargetLang: '대상 언어',
+            toggleDisplay: '버튼 표시',
+            settingsAdvanced: '고급 설정',
+            optionOther: '기타...',
+            customLangHelp: 'ISO 코드'
+        },
+        pt: {
+            popupTitle: 'Pointer',
+            labelTargetLang: 'Idioma',
+            toggleDisplay: 'Mostrar botão',
+            settingsAdvanced: 'Configurações avançadas',
+            optionOther: 'Outro...',
+            customLangHelp: 'Código ISO'
+        },
+        ru: {
+            popupTitle: 'Pointer',
+            labelTargetLang: 'Язык',
+            toggleDisplay: 'Показать кнопку',
+            settingsAdvanced: 'Расширенные настройки',
+            optionOther: 'Другой...',
+            customLangHelp: 'Код ISO'
+        },
+        it: {
+            popupTitle: 'Pointer',
+            labelTargetLang: 'Lingua',
+            toggleDisplay: 'Mostra pulsante',
+            settingsAdvanced: 'Impostazioni avanzate',
+            optionOther: 'Altro...',
+            customLangHelp: 'Codice ISO'
         }
     };
     function applyTranslations(lang) {
