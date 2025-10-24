@@ -5,73 +5,102 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background-color: rgba(240, 240, 240, 0.9);
-    border: 2px solid #444;
+    /* 使用渐变和玻璃拟态效果增加质感 */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 245, 250, 0.9) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    /* 细腻的边框 */
+    border: 1px solid rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 9999;
-    transition: all 0.3s ease;
+    /* 使用更平滑的过渡曲线 */
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    /* 多层阴影增加深度 */
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        0 4px 16px rgba(0, 0, 0, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.08);
     transform-origin: bottom right;
 }
 
 #ai-translator-button:hover {
-    transform: scale(1.05);
-    background-color: rgba(245, 245, 245, 1);
+    transform: scale(1.08);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 0.98) 100%);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.06),
+        0 2px 4px rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.12);
 }
 
 @keyframes pulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.4);
+        box-shadow:
+            0 2px 8px rgba(52, 168, 83, 0.2),
+            0 4px 16px rgba(52, 168, 83, 0.15),
+            0 0 0 0 rgba(52, 168, 83, 0.4);
     }
-
-    70% {
-        box-shadow: 0 0 0 5px rgba(52, 168, 83, 0);
+    50% {
+        box-shadow:
+            0 4px 12px rgba(52, 168, 83, 0.25),
+            0 8px 24px rgba(52, 168, 83, 0.2),
+            0 0 0 8px rgba(52, 168, 83, 0);
     }
-
     100% {
-        box-shadow: 0 0 0 0 rgba(52, 168, 83, 0);
+        box-shadow:
+            0 2px 8px rgba(52, 168, 83, 0.2),
+            0 4px 16px rgba(52, 168, 83, 0.15),
+            0 0 0 0 rgba(52, 168, 83, 0);
     }
 }
 
 #ai-translator-button.active {
-    border-color: #34a853;
-    background-color: #34a853;
-    box-shadow: 0 2px 15px rgba(52, 168, 83, 0.4);
+    border-color: rgba(52, 168, 83, 0.3);
+    /* 使用更柔和的渐变绿色 */
+    background: linear-gradient(135deg, rgba(52, 168, 83, 0.95) 0%, rgba(46, 149, 73, 0.9) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     transform: scale(1.05);
-    animation: pulse 2s infinite;
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 #ai-translator-button.dragging {
-    opacity: 0.8;
-    transform: scale(1.1);
+    opacity: 0.85;
+    transform: scale(1.12);
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.15),
+        0 12px 32px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.12);
     transition: none;
     animation: none;
+    cursor: grabbing;
 }
 
 #ai-translator-button.long-pressing {
     transform: scale(0.9);
-    transition: transform 0.2s ease-in-out;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #ai-translator-button.long-press-active {
-    animation: longPressFade 1s ease-in-out;
+    animation: longPressFade 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes longPressFade {
     0% {
         opacity: 1;
+        transform: scale(0.9);
     }
-
     50% {
-        opacity: 0.5;
+        opacity: 0.7;
+        transform: scale(0.85);
     }
-
     100% {
         opacity: 1;
+        transform: scale(0.9);
     }
 }
 
@@ -79,7 +108,6 @@
     0% {
         transform: translate(-50%, -50%) rotate(0deg);
     }
-
     100% {
         transform: translate(-50%, -50%) rotate(360deg);
     }
@@ -94,10 +122,11 @@
     height: 40px;
     margin-top: -20px;
     margin-left: -20px;
-    border: 3px solid rgba(255, 255, 255, 0.6);
-    border-top-color: rgba(255, 255, 255, 1);
+    border: 2.5px solid rgba(100, 100, 100, 0.15);
+    border-top-color: rgba(100, 100, 100, 0.6);
+    border-right-color: rgba(100, 100, 100, 0.4);
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     pointer-events: none;
     z-index: 10000;
 }
@@ -108,10 +137,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #444;
+    color: #5f6368;
     font-size: 24px;
-    font-weight: bold;
-    transition: color 0.2s ease;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #ai-translator-button.active #ai-translator-icon {
@@ -143,7 +172,122 @@
     z-index: 9998;
 }
 
+/* Loading Indicator - 翻译等待提示 */
+.ai-translator-loading-indicator {
+    position: absolute;
+    padding: 8px 12px;
+    /* 使用柔和的毛玻璃背景 */
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    /* 细腻的边框 */
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+    /* 柔和的阴影 */
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        0 4px 16px rgba(0, 0, 0, 0.03),
+        0 1px 2px rgba(0, 0, 0, 0.08);
+    /* 简约的文字样式 */
+    color: #5f6368;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    z-index: 10001;
+    pointer-events: none;
+    /* 出现动画 */
+    animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(4px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Loading点点动画 */
+.ai-translator-loading-indicator::after {
+    content: '';
+    animation: loadingDots 1.4s infinite;
+}
+
+@keyframes loadingDots {
+    0%, 20% {
+        content: '';
+    }
+    40% {
+        content: '.';
+    }
+    60% {
+        content: '..';
+    }
+    80%, 100% {
+        content: '...';
+    }
+}
+
+/* 翻译后的文本高亮 */
 .ai-translator-highlight {
-    background-color: rgba(52, 168, 83, 0.1);
-    transition: background-color 0.3s ease;
+    background: linear-gradient(135deg, rgba(52, 168, 83, 0.22) 0%, rgba(46, 149, 73, 0.16) 100%);
+    border-bottom: 2px solid rgba(52, 168, 83, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 2px 4px;
+    /* 添加淡入动画 */
+    animation: highlightFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes highlightFadeIn {
+    0% {
+        background: linear-gradient(135deg, rgba(52, 168, 83, 0.35) 0%, rgba(46, 149, 73, 0.28) 100%);
+        border-bottom-color: rgba(52, 168, 83, 0.6);
+        transform: scale(1.02);
+    }
+    100% {
+        background: linear-gradient(135deg, rgba(52, 168, 83, 0.22) 0%, rgba(46, 149, 73, 0.16) 100%);
+        border-bottom-color: rgba(52, 168, 83, 0.4);
+        transform: scale(1);
+    }
+}
+
+.ai-translator-highlight:hover {
+    background: linear-gradient(135deg, rgba(52, 168, 83, 0.3) 0%, rgba(46, 149, 73, 0.22) 100%);
+    border-bottom-color: rgba(52, 168, 83, 0.55);
+    transform: translateY(-1px);
+}
+
+/* 原文状态样式 */
+.ai-translator-original {
+    background: linear-gradient(135deg, rgba(144, 238, 144, 0.25) 0%, rgba(152, 251, 152, 0.18) 100%);
+    border-bottom: 2px solid rgba(144, 238, 144, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+.ai-translator-original:hover {
+    background: linear-gradient(135deg, rgba(144, 238, 144, 0.35) 0%, rgba(152, 251, 152, 0.25) 100%);
+    border-bottom-color: rgba(144, 238, 144, 0.65);
+    transform: translateY(-1px);
+}
+
+/* 可翻译元素标记（当启用时） */
+.ai-translator-target {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.06) 0%, rgba(52, 168, 244, 0.04) 100%);
+    border: 1px dashed rgba(66, 133, 244, 0.3);
+    border-radius: 3px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.ai-translator-target:hover {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.1) 0%, rgba(52, 168, 244, 0.08) 100%);
+    border-color: rgba(66, 133, 244, 0.45);
 }

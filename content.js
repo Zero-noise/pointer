@@ -32,6 +32,14 @@ function setupShadowDOM() {
             .then(css => {
                 style.textContent = css;
                 aiTranslatorShadow.appendChild(style);
+
+                // Also inject translation-related CSS into page DOM
+                // so styles apply to translated content outside Shadow DOM
+                const pageStyle = document.createElement('style');
+                pageStyle.id = 'ai-translator-page-styles';
+                pageStyle.textContent = css;
+                document.head.appendChild(pageStyle);
+
                 // Static CSS 加载完成后，注入动态 spinner 样式
                 applyButtonSize(buttonSize);
             })
@@ -158,14 +166,29 @@ function initializeExtension() {
 
         chrome.storage.onChanged.addListener(function (changes, namespace) {
             if (namespace === 'sync') {
+                // Handle target language changes so future translations use the latest value
+                if (changes.targetLang) {
+                    targetLang = changes.targetLang.newValue || 'zh';
+                }
+
+                // Handle translation activation state changes across tabs without refresh
+                if (changes.isActive) {
+                    const shouldActivate = !!changes.isActive.newValue;
+                    if (shouldActivate && !isActive) {
+                        activateTranslationMode();
+                    } else if (!shouldActivate && isActive) {
+                        deactivateTranslationMode();
+                    }
+                }
+
                 // Handle button size changes
                 if (changes.buttonSize && changes.buttonSize.newValue) {
                     buttonSize = changes.buttonSize.newValue;
                     applyButtonSize(buttonSize);
                 }
 
-                // Handle button position changes
-                if (changes.buttonPosition) {
+                // Handle button position changes including drag updates
+                if (changes.buttonPosition || changes.buttonX || changes.buttonY) {
                     chrome.storage.sync.get(['buttonPosition', 'buttonX', 'buttonY'], function (result) {
                         positionButton(result.buttonPosition, result.buttonX, result.buttonY);
                     });
@@ -181,19 +204,7 @@ function initializeExtension() {
         console.error('Error setting up storage change listener:', error);
     }
 
-    // Add CSS for original text highlighting
-    const style = document.createElement('style');
-    style.textContent = `
-        .ai-translator-highlight {
-            background-color: rgba(255, 255, 0, 0.3);
-            cursor: pointer;
-        }
-        .ai-translator-original {
-            background-color: rgba(144, 238, 144, 0.3);
-            cursor: pointer;
-        }
-    `;
-    document.head.appendChild(style);
+    // CSS styles are now defined in content.css for better maintainability
 }
 
 // Position the button according to preferences
@@ -487,6 +498,22 @@ function handleTextSelection(event) {
         return;
     }
 
+    const getTranslationSpan = (node) => {
+        if (!node) return null;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            return node.closest('.ai-translator-highlight, .ai-translator-original');
+        }
+        return node.parentElement?.closest('.ai-translator-highlight, .ai-translator-original') || null;
+    };
+
+    const startSpan = getTranslationSpan(range.startContainer);
+    const endSpan = getTranslationSpan(range.endContainer);
+
+    if (startSpan && endSpan && startSpan === endSpan) {
+        // Selection fully inside a translated span; keep current display state and do nothing
+        return;
+    }
+
     // 检查选择是否完全在已翻译区域内
     const isWithinTranslatedSpan = (node) => {
         const closest = node.nodeType === Node.ELEMENT_NODE ?
@@ -512,100 +539,14 @@ function handleTextSelection(event) {
         return;
     }
 
-    // 检查选择范围内是否包含已翻译的内容
+    // 检查当前选区是否与已翻译片段存在交集，如有则直接跳过避免重复翻译
     const translatedNodes = findTranslatedNodesInRange(range);
     if (translatedNodes.length > 0) {
-        // 场景2: 单个翻译片段点击切换
-        if (translatedNodes.length === 1 && isSelectionContainedInNode(range, translatedNodes[0])) {
-            toggleTranslation({ currentTarget: translatedNodes[0] });
+        if (translateMixedSelection(range)) {
             return;
         }
-        // 场景3: 选区包含已翻译和未翻译内容，使用锚点与焦点检测同一块级元素
-        const anchorNode = selection.anchorNode;
-        const focusNode = selection.focusNode;
-        const anchorElem = anchorNode.nodeType === Node.TEXT_NODE ? anchorNode.parentElement : anchorNode;
-        const focusElem = focusNode.nodeType === Node.TEXT_NODE ? focusNode.parentElement : focusNode;
-        const blockSelector = 'p, li, h1, h2, h3, h4, h5, h6';
-        const anchorBlock = anchorElem.closest && anchorElem.closest(blockSelector);
-        const focusBlock = focusElem.closest && focusElem.closest(blockSelector);
-        if (anchorBlock && focusBlock && anchorBlock === focusBlock) {
-            // 同一块级元素内：克隆选区内容并恢复其中所有已翻译片段为原文，再合并文本使用简易翻译
-            const fragment = range.cloneContents();
-            const tempDiv = document.createElement('div');
-            tempDiv.appendChild(fragment);
-            tempDiv.querySelectorAll('.ai-translator-highlight, .ai-translator-original')
-                .forEach(span => replaceTranslatedNodeWithOriginal(span));
-            const mergedText = tempDiv.innerText.trim();
-            if (mergedText) {
-                range.deleteContents();
-                const textNode = document.createTextNode(mergedText);
-                range.insertNode(textNode);
-                const newRange = document.createRange();
-                newRange.setStart(textNode, 0);
-                newRange.setEnd(textNode, mergedText.length);
-                translateSimpleSelection(newRange, mergedText);
-            }
-        } else {
-            // 跨块级元素：按块级元素分段处理，整体段落翻译逻辑修复
-            const allBlocks = Array.from(document.querySelectorAll(blockSelector));
-            const startIndex = allBlocks.indexOf(anchorBlock);
-            const endIndex = allBlocks.indexOf(focusBlock);
-            let blocks = [];
-            if (startIndex !== -1 && endIndex !== -1) {
-                const [min, max] = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)];
-                blocks = allBlocks.slice(min, max + 1);
-            } else {
-                blocks = [anchorBlock, focusBlock];
-            }
-            blocks.forEach((blk, idx) => {
-                const subRange = document.createRange();
-                if (idx === 0) {
-                    subRange.setStart(range.startContainer, range.startOffset);
-                } else {
-                    subRange.setStart(blk, 0);
-                }
-                if (idx === blocks.length - 1) {
-                    subRange.setEnd(range.endContainer, range.endOffset);
-                } else {
-                    subRange.setEnd(blk, blk.childNodes.length);
-                }
-                const subTranslatedNodes = findTranslatedNodesInRange(subRange);
-                if (subTranslatedNodes.length > 0) {
-                    // 同块级元素包含已翻译内容：恢复原文后整体翻译
-                    const fragment = subRange.cloneContents();
-                    const tempDiv = document.createElement('div');
-                    tempDiv.appendChild(fragment);
-                    tempDiv.querySelectorAll('.ai-translator-highlight, .ai-translator-original')
-                        .forEach(span => replaceTranslatedNodeWithOriginal(span));
-                    const mergedText = tempDiv.innerText.trim();
-                    if (mergedText) {
-                        subRange.deleteContents();
-                        const textNode = document.createTextNode(mergedText);
-                        subRange.insertNode(textNode);
-                        const newRange = document.createRange();
-                        newRange.setStart(textNode, 0);
-                        newRange.setEnd(textNode, mergedText.length);
-                        translateSimpleSelection(newRange, mergedText);
-                    }
-                } else {
-                    // 整段未翻译内容：整体翻译
-                    const fragment = subRange.cloneContents();
-                    const tempDiv = document.createElement('div');
-                    tempDiv.appendChild(fragment);
-                    const mergedText = tempDiv.innerText.trim();
-                    if (mergedText) {
-                        subRange.deleteContents();
-                        const textNode = document.createTextNode(mergedText);
-                        subRange.insertNode(textNode);
-                        const newRange = document.createRange();
-                        newRange.setStart(textNode, 0);
-                        newRange.setEnd(textNode, mergedText.length);
-                        translateSimpleSelection(newRange, mergedText);
-                    }
-                }
-            });
-        }
-        return; // Cross-block and same-block handled, exit
+        console.log("AI Translator: Selection intersects existing translation, skipping retranslation.");
+        return;
     }
 
     // 场景 4: 选择区域完全是未翻译的内容，正常进行翻译
@@ -698,8 +639,10 @@ function isSelectionContainedInNode(range, node) {
 
 // Replace a translated node with its original text
 function replaceTranslatedNodeWithOriginal(node) {
-    const originalText = node.dataset.originalText;
-    const textNode = document.createTextNode(originalText);
+    const originalText = node && node.dataset && node.dataset.originalText !== undefined
+        ? node.dataset.originalText
+        : (node ? node.textContent : '');
+    const textNode = document.createTextNode(originalText || '');
     if (node.parentNode) {
         node.parentNode.replaceChild(textNode, node);
         return textNode;
@@ -707,6 +650,124 @@ function replaceTranslatedNodeWithOriginal(node) {
         console.warn("AI Translator: Node parent missing when trying to restore original text.", node);
         return null; // Indicate failure
     }
+}
+
+// Translate mixed selections containing both original and already translated segments as a single block
+function translateMixedSelection(range) {
+    const textNodes = getTextNodesInRange(range);
+    const hasUntranslated = textNodes.some(node => {
+        if (!node || !node.textContent || !node.textContent.trim()) {
+            return false;
+        }
+        const parentElement = node.parentElement;
+        return !parentElement || !parentElement.closest('.ai-translator-highlight, .ai-translator-original');
+    });
+
+    if (!hasUntranslated) {
+        return false;
+    }
+
+    const translatedNodes = findTranslatedNodesInRange(range);
+    if (!translatedNodes.length) {
+        return false;
+    }
+
+    const expandedRange = range.cloneRange();
+    translatedNodes.forEach(node => {
+        if (!node || !document.contains(node)) {
+            return;
+        }
+        const nodeRange = document.createRange();
+        try {
+            nodeRange.selectNode(node);
+        } catch (error) {
+            console.warn('AI Translator: Failed to create range for translated node.', node, error);
+            return;
+        }
+
+        if (expandedRange.compareBoundaryPoints(Range.START_TO_START, nodeRange) > 0) {
+            expandedRange.setStart(nodeRange.startContainer, nodeRange.startOffset);
+        }
+        if (expandedRange.compareBoundaryPoints(Range.END_TO_END, nodeRange) < 0) {
+            expandedRange.setEnd(nodeRange.endContainer, nodeRange.endOffset);
+        }
+    });
+
+    const startMarker = document.createTextNode('');
+    const endMarker = document.createTextNode('');
+
+    const startRange = expandedRange.cloneRange();
+    startRange.collapse(true);
+    startRange.insertNode(startMarker);
+
+    const endRange = expandedRange.cloneRange();
+    endRange.collapse(false);
+    endRange.insertNode(endMarker);
+
+    const workingRange = document.createRange();
+    workingRange.setStartAfter(startMarker);
+    workingRange.setEndBefore(endMarker);
+
+    const spansToRestore = findTranslatedNodesInRange(workingRange);
+    spansToRestore.forEach(span => {
+        if (span && document.contains(span)) {
+            replaceTranslatedNodeWithOriginal(span);
+        }
+    });
+
+    const finalRange = document.createRange();
+    finalRange.setStartAfter(startMarker);
+    finalRange.setEndBefore(endMarker);
+
+    const finalText = finalRange.toString();
+    const trimmedFinalText = finalText.trim();
+
+    const startParent = startMarker.parentNode;
+    const endParent = endMarker.parentNode;
+    if (startParent) {
+        startParent.removeChild(startMarker);
+    }
+    if (endParent) {
+        endParent.removeChild(endMarker);
+    }
+
+    if (!trimmedFinalText) {
+        const clearedSelection = window.getSelection();
+        if (clearedSelection) {
+            clearedSelection.removeAllRanges();
+        }
+        return true;
+    }
+
+    const fragment = finalRange.cloneContents();
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(fragment);
+    const mergedText = tempDiv.innerText;
+
+    finalRange.deleteContents();
+    const placeholderNode = document.createTextNode(mergedText);
+    finalRange.insertNode(placeholderNode);
+
+    const newRange = document.createRange();
+    newRange.setStart(placeholderNode, 0);
+    newRange.setEnd(placeholderNode, mergedText.length);
+
+    try {
+        translateSimpleSelection(newRange, mergedText);
+    } catch (error) {
+        console.error('AI Translator: Failed to translate mixed selection.', error);
+        const failedSelection = window.getSelection();
+        if (failedSelection) {
+            failedSelection.removeAllRanges();
+        }
+        return false;
+    }
+
+    const activeSelection = window.getSelection();
+    if (activeSelection) {
+        activeSelection.removeAllRanges();
+    }
+    return true;
 }
 
 // Translate untranslated segments around existing translations
@@ -811,6 +872,23 @@ function translateSimpleSelection(range, selectedText) {
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
 
+        const textNode = range.startContainer;
+
+        // Validate text node before async work
+        if (!textNode || textNode.nodeType !== Node.TEXT_NODE || !document.contains(textNode)) {
+            hideLoading(loadingIndicator);
+            console.warn("AI Translator: Skipping translation, selection text node invalid before request.");
+            return;
+        }
+
+        // Prevent re-translating content that already lives inside a translated span
+        const parentTranslatedSpan = textNode.parentElement?.closest('.ai-translator-highlight, .ai-translator-original');
+        if (parentTranslatedSpan) {
+            hideLoading(loadingIndicator);
+            console.log("AI Translator: Selection already translated, skipping duplicate translation.");
+            return;
+        }
+
         chrome.storage.sync.get(['apiKey'], function (result) {
             apiKey = result.apiKey || '';
 
@@ -824,7 +902,6 @@ function translateSimpleSelection(range, selectedText) {
             }
 
             // --- Store node reference --- 
-            const textNode = range.startContainer;
             // --- Check node existence before sending request --- 
             if (!textNode || textNode.nodeType !== Node.TEXT_NODE || !document.contains(textNode)) {
                 hideLoading(loadingIndicator);
@@ -1132,19 +1209,15 @@ function getComputedStyle(element, property) {
 
 // Helper functions for loading state (replace with your actual implementation)
 function showLoadingNearRange(range) {
-    // Example: create a temporary loading element near the selection
+    // Create a loading indicator element near the selection
     const rect = range.getBoundingClientRect();
     const indicator = document.createElement('div');
-    indicator.textContent = 'Translating...';
-    indicator.style.position = 'absolute';
+    indicator.textContent = 'Translating';
+    // Add CSS class for styling and animation
+    indicator.classList.add('ai-translator-loading-indicator');
+    // Only set position-related inline styles
     indicator.style.left = `${window.scrollX + rect.left}px`;
-    indicator.style.top = `${window.scrollY + rect.top - 25}px`; // Position above
-    indicator.style.background = '#ffc';
-    indicator.style.padding = '3px 5px';
-    indicator.style.border = '1px solid #ccc';
-    indicator.style.borderRadius = '3px';
-    indicator.style.zIndex = '10001';
-    indicator.classList.add('ai-translator-loading-indicator'); // Add class for removal
+    indicator.style.top = `${window.scrollY + rect.top - 35}px`; // Position above
     document.body.appendChild(indicator);
     return indicator;
 }
