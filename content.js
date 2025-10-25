@@ -12,6 +12,7 @@ let dragStartPending = false;
 let buttonMoved = false;
 let showButton = true;
 let buttonSize = 64; // Default button size
+const BLOCK_LEVEL_SELECTOR = 'p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, pre, div, section, article';
 
 // Shadow DOM container and root for translation UI
 let aiTranslatorContainer;
@@ -558,7 +559,7 @@ function handleTextSelection(event) {
         // 多节点选择，判断是否在同一块级元素内以决定翻译方式
         const startElem = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer;
         const endElem = range.endContainer.nodeType === Node.TEXT_NODE ? range.endContainer.parentElement : range.endContainer;
-        const blockSelector = 'p, li, h1, h2, h3, h4, h5, h6';
+        const blockSelector = BLOCK_LEVEL_SELECTOR;
         const startBlock = startElem.closest && startElem.closest(blockSelector);
         const endBlock = endElem.closest && endElem.closest(blockSelector);
         if (startBlock && endBlock && startBlock === endBlock) {
@@ -719,19 +720,20 @@ function translateMixedSelection(range) {
     finalRange.setStartAfter(startMarker);
     finalRange.setEndBefore(endMarker);
 
+    const cleanupMarkers = () => {
+        if (startMarker.parentNode) {
+            startMarker.parentNode.removeChild(startMarker);
+        }
+        if (endMarker.parentNode) {
+            endMarker.parentNode.removeChild(endMarker);
+        }
+    };
+
     const finalText = finalRange.toString();
     const trimmedFinalText = finalText.trim();
 
-    const startParent = startMarker.parentNode;
-    const endParent = endMarker.parentNode;
-    if (startParent) {
-        startParent.removeChild(startMarker);
-    }
-    if (endParent) {
-        endParent.removeChild(endMarker);
-    }
-
     if (!trimmedFinalText) {
+        cleanupMarkers();
         const clearedSelection = window.getSelection();
         if (clearedSelection) {
             clearedSelection.removeAllRanges();
@@ -739,35 +741,25 @@ function translateMixedSelection(range) {
         return true;
     }
 
-    const fragment = finalRange.cloneContents();
-    const tempDiv = document.createElement('div');
-    tempDiv.appendChild(fragment);
-    const mergedText = tempDiv.innerText;
+    const blockElements = getBlockElementsInRange(finalRange);
+    let translationHandled = false;
 
-    finalRange.deleteContents();
-    const placeholderNode = document.createTextNode(mergedText);
-    finalRange.insertNode(placeholderNode);
+    if (blockElements.length > 1) {
+        translationHandled = translateRangeByBlocks(finalRange, blockElements);
+    } else {
+        translationHandled = translateRangeAsSingleBlock(finalRange);
+    }
 
-    const newRange = document.createRange();
-    newRange.setStart(placeholderNode, 0);
-    newRange.setEnd(placeholderNode, mergedText.length);
+    cleanupMarkers();
 
-    try {
-        translateSimpleSelection(newRange, mergedText);
-    } catch (error) {
-        console.error('AI Translator: Failed to translate mixed selection.', error);
-        const failedSelection = window.getSelection();
-        if (failedSelection) {
-            failedSelection.removeAllRanges();
+    if (translationHandled) {
+        const activeSelection = window.getSelection();
+        if (activeSelection) {
+            activeSelection.removeAllRanges();
         }
-        return false;
     }
 
-    const activeSelection = window.getSelection();
-    if (activeSelection) {
-        activeSelection.removeAllRanges();
-    }
-    return true;
+    return translationHandled;
 }
 
 // Translate untranslated segments around existing translations
@@ -865,9 +857,162 @@ function isSimpleTextSelection(range) {
         range.startContainer.nodeType === Node.TEXT_NODE;
 }
 
+function getBlockElementsInRange(range) {
+    const textNodes = getTextNodesInRange(range);
+    const blocks = [];
+    const seen = new Set();
+
+    for (const node of textNodes) {
+        if (!node || node.nodeType !== Node.TEXT_NODE) {
+            continue;
+        }
+        const parentElement = node.parentElement;
+        if (!parentElement) {
+            continue;
+        }
+        const blockAncestor = parentElement.closest ? parentElement.closest(BLOCK_LEVEL_SELECTOR) : null;
+        const resolvedBlock = blockAncestor || parentElement;
+        if (resolvedBlock && !seen.has(resolvedBlock)) {
+            seen.add(resolvedBlock);
+            blocks.push(resolvedBlock);
+        }
+    }
+
+    return sortNodesInDocumentOrder(blocks);
+}
+
+function sortNodesInDocumentOrder(nodes) {
+    return nodes.sort((a, b) => {
+        if (a === b) {
+            return 0;
+        }
+        const position = a.compareDocumentPosition(b);
+        if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+            return -1;
+        }
+        if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+            return 1;
+        }
+        return 0;
+    });
+}
+
+function createBlockIntersectionRange(selectionRange, blockElement) {
+    if (!selectionRange || !blockElement || !selectionRange.intersectsNode(blockElement)) {
+        return null;
+    }
+
+    const blockRange = document.createRange();
+    blockRange.selectNodeContents(blockElement);
+
+    const intersection = document.createRange();
+
+    if (selectionRange.compareBoundaryPoints(Range.START_TO_START, blockRange) < 0) {
+        intersection.setStart(blockRange.startContainer, blockRange.startOffset);
+    } else {
+        intersection.setStart(selectionRange.startContainer, selectionRange.startOffset);
+    }
+
+    if (selectionRange.compareBoundaryPoints(Range.END_TO_END, blockRange) > 0) {
+        intersection.setEnd(blockRange.endContainer, blockRange.endOffset);
+    } else {
+        intersection.setEnd(selectionRange.endContainer, selectionRange.endOffset);
+    }
+
+    if (intersection.collapsed) {
+        return null;
+    }
+
+    return intersection;
+}
+
+function translateRangeAsSingleBlock(targetRange, options = {}) {
+    if (!targetRange || targetRange.collapsed) {
+        return false;
+    }
+
+    const fragment = targetRange.cloneContents();
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(fragment);
+    const mergedText = tempDiv.innerText !== undefined ? tempDiv.innerText : (tempDiv.textContent || '');
+
+    if (!mergedText.trim()) {
+        return false;
+    }
+
+    targetRange.deleteContents();
+    const placeholderNode = document.createTextNode(mergedText);
+    targetRange.insertNode(placeholderNode);
+
+    const normalizedRange = document.createRange();
+    normalizedRange.setStart(placeholderNode, 0);
+    normalizedRange.setEnd(placeholderNode, mergedText.length);
+
+    try {
+        translateSimpleSelection(normalizedRange, mergedText, options);
+        return true;
+    } catch (error) {
+        console.error('AI Translator: Failed to translate block segment.', error);
+        return false;
+    }
+}
+
+function translateRangeByBlocks(selectionRange, blockElements) {
+    if (!blockElements || blockElements.length === 0) {
+        return false;
+    }
+
+    const loadingController = createLoadingController(selectionRange);
+    let translatedCount = 0;
+
+    for (const block of blockElements) {
+        if (!block || !document.contains(block)) {
+            continue;
+        }
+
+        const blockRange = createBlockIntersectionRange(selectionRange, block);
+        if (!blockRange || blockRange.collapsed) {
+            continue;
+        }
+
+        const translated = translateRangeAsSingleBlock(blockRange, { loadingController });
+        if (translated) {
+            translatedCount++;
+        }
+    }
+
+    if (translatedCount === 0) {
+        loadingController.cancel();
+    }
+
+    return translatedCount > 0;
+}
+
 // Simplified translation for single text node selections
-function translateSimpleSelection(range, selectedText) {
-    const loadingIndicator = showLoadingNearRange(range);
+function translateSimpleSelection(range, selectedText, options = {}) {
+    const loadingController = options.loadingController || null;
+    const externalLoadingIndicator = options.loadingIndicator || null;
+    let loadingIndicator = null;
+    let manageLoading = true;
+
+    if (loadingController) {
+        loadingController.acquire();
+        loadingIndicator = loadingController.indicator;
+        manageLoading = false;
+    } else if (externalLoadingIndicator) {
+        loadingIndicator = externalLoadingIndicator;
+        manageLoading = false;
+    } else {
+        loadingIndicator = showLoadingNearRange(range);
+    }
+
+    const cleanupLoading = () => {
+        if (loadingController) {
+            loadingController.release();
+        } else if (manageLoading) {
+            hideLoading(loadingIndicator);
+        }
+    };
 
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
@@ -876,7 +1021,7 @@ function translateSimpleSelection(range, selectedText) {
 
         // Validate text node before async work
         if (!textNode || textNode.nodeType !== Node.TEXT_NODE || !document.contains(textNode)) {
-            hideLoading(loadingIndicator);
+            cleanupLoading();
             console.warn("AI Translator: Skipping translation, selection text node invalid before request.");
             return;
         }
@@ -884,7 +1029,7 @@ function translateSimpleSelection(range, selectedText) {
         // Prevent re-translating content that already lives inside a translated span
         const parentTranslatedSpan = textNode.parentElement?.closest('.ai-translator-highlight, .ai-translator-original');
         if (parentTranslatedSpan) {
-            hideLoading(loadingIndicator);
+            cleanupLoading();
             console.log("AI Translator: Selection already translated, skipping duplicate translation.");
             return;
         }
@@ -893,7 +1038,7 @@ function translateSimpleSelection(range, selectedText) {
             apiKey = result.apiKey || '';
 
             if (!apiKey) {
-                hideLoading(loadingIndicator);
+                cleanupLoading();
                 alert('Please set your API key in the extension settings');
                 if (chrome.runtime && chrome.runtime.openOptionsPage) {
                     chrome.runtime.openOptionsPage();
@@ -904,7 +1049,7 @@ function translateSimpleSelection(range, selectedText) {
             // --- Store node reference --- 
             // --- Check node existence before sending request --- 
             if (!textNode || textNode.nodeType !== Node.TEXT_NODE || !document.contains(textNode)) {
-                hideLoading(loadingIndicator);
+                cleanupLoading();
                 console.warn("AI Translator: Original text node is no longer valid before sending request.");
                 return;
             }
@@ -914,7 +1059,7 @@ function translateSimpleSelection(range, selectedText) {
                 text: [selectedText],
                 targetLang: targetLang
             }, (response) => {
-                hideLoading(loadingIndicator);
+                cleanupLoading();
 
                 try {
                     // --- Check node existence again after response --- 
@@ -993,7 +1138,7 @@ function translateSimpleSelection(range, selectedText) {
             });
         });
     } catch (error) {
-        hideLoading(loadingIndicator);
+        cleanupLoading();
         console.error('Error sending translation request:', error);
         alert('Translation failed: Extension context changed. Please refresh the page.');
     }
@@ -1226,6 +1371,43 @@ function hideLoading(indicator) {
     if (indicator && indicator.parentNode) {
         indicator.parentNode.removeChild(indicator);
     }
+}
+
+function createLoadingController(range) {
+    let indicator = null;
+    let pendingCount = 0;
+
+    const ensureIndicator = () => {
+        if (!indicator) {
+            indicator = showLoadingNearRange(range);
+        }
+    };
+
+    return {
+        get indicator() {
+            return indicator;
+        },
+        acquire() {
+            ensureIndicator();
+            pendingCount++;
+        },
+        release() {
+            if (pendingCount > 0) {
+                pendingCount--;
+            }
+            if (pendingCount === 0 && indicator) {
+                hideLoading(indicator);
+                indicator = null;
+            }
+        },
+        cancel() {
+            pendingCount = 0;
+            if (indicator) {
+                hideLoading(indicator);
+                indicator = null;
+            }
+        }
+    };
 }
 
 // Handle extension context invalidation

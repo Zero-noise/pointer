@@ -464,7 +464,15 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
     const linkByKey = {};
     navLinks.forEach(link => { linkByKey[link.dataset.nav] = link; });
+
+    // 标志位：是否是手动点击导航触发的滚动
+    let isManualNavClick = false;
+    let manualNavTimer = null;
+
     const observer = new IntersectionObserver((entries) => {
+        // 如果是手动点击导航触发的滚动，不自动更新active状态
+        if (isManualNavClick) return;
+
         entries.forEach(entry => {
             const sec = sectionMap.find(s => s.id === entry.target.id);
             if (!sec) return;
@@ -485,7 +493,25 @@ document.addEventListener('DOMContentLoaded', function () {
             if (href && href.startsWith('#')) {
                 e.preventDefault();
                 const target = document.querySelector(href);
-                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (target) {
+                    // 设置手动点击标志位
+                    isManualNavClick = true;
+
+                    // 清除之前的定时器
+                    if (manualNavTimer) clearTimeout(manualNavTimer);
+
+                    // 立即更新active状态
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // 滚动到目标section
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    // 1秒后恢复IntersectionObserver的自动更新功能
+                    manualNavTimer = setTimeout(() => {
+                        isManualNavClick = false;
+                    }, 1000);
+                }
             }
         });
     });

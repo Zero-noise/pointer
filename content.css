@@ -40,28 +40,28 @@
 @keyframes pulse {
     0% {
         box-shadow:
-            0 2px 8px rgba(52, 168, 83, 0.2),
-            0 4px 16px rgba(52, 168, 83, 0.15),
-            0 0 0 0 rgba(52, 168, 83, 0.4);
+            0 2px 8px rgba(96, 125, 139, 0.15),
+            0 4px 16px rgba(96, 125, 139, 0.1),
+            0 0 0 0 rgba(96, 125, 139, 0.25);
     }
     50% {
         box-shadow:
-            0 4px 12px rgba(52, 168, 83, 0.25),
-            0 8px 24px rgba(52, 168, 83, 0.2),
-            0 0 0 8px rgba(52, 168, 83, 0);
+            0 4px 12px rgba(96, 125, 139, 0.18),
+            0 8px 24px rgba(96, 125, 139, 0.12),
+            0 0 0 8px rgba(96, 125, 139, 0);
     }
     100% {
         box-shadow:
-            0 2px 8px rgba(52, 168, 83, 0.2),
-            0 4px 16px rgba(52, 168, 83, 0.15),
-            0 0 0 0 rgba(52, 168, 83, 0);
+            0 2px 8px rgba(96, 125, 139, 0.15),
+            0 4px 16px rgba(96, 125, 139, 0.1),
+            0 0 0 0 rgba(96, 125, 139, 0);
     }
 }
 
 #ai-translator-button.active {
-    border-color: rgba(52, 168, 83, 0.3);
-    /* 使用更柔和的渐变绿色 */
-    background: linear-gradient(135deg, rgba(52, 168, 83, 0.95) 0%, rgba(46, 149, 73, 0.9) 100%);
+    border-color: rgba(96, 125, 139, 0.25);
+    /* 使用柔和的蓝灰色渐变，低调不抢眼 */
+    background: linear-gradient(135deg, rgba(96, 125, 139, 0.92) 0%, rgba(84, 110, 122, 0.88) 100%);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     transform: scale(1.05);
@@ -233,8 +233,8 @@
 
 /* 翻译后的文本高亮 */
 .ai-translator-highlight {
-    background: linear-gradient(135deg, rgba(52, 168, 83, 0.22) 0%, rgba(46, 149, 73, 0.16) 100%);
-    border-bottom: 2px solid rgba(52, 168, 83, 0.4);
+    background: linear-gradient(135deg, rgba(96, 125, 139, 0.15) 0%, rgba(84, 110, 122, 0.1) 100%);
+    border-bottom: 2px solid rgba(96, 125, 139, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border-radius: 3px;
@@ -245,27 +245,27 @@
 
 @keyframes highlightFadeIn {
     0% {
-        background: linear-gradient(135deg, rgba(52, 168, 83, 0.35) 0%, rgba(46, 149, 73, 0.28) 100%);
-        border-bottom-color: rgba(52, 168, 83, 0.6);
+        background: linear-gradient(135deg, rgba(96, 125, 139, 0.25) 0%, rgba(84, 110, 122, 0.2) 100%);
+        border-bottom-color: rgba(96, 125, 139, 0.5);
         transform: scale(1.02);
     }
     100% {
-        background: linear-gradient(135deg, rgba(52, 168, 83, 0.22) 0%, rgba(46, 149, 73, 0.16) 100%);
-        border-bottom-color: rgba(52, 168, 83, 0.4);
+        background: linear-gradient(135deg, rgba(96, 125, 139, 0.15) 0%, rgba(84, 110, 122, 0.1) 100%);
+        border-bottom-color: rgba(96, 125, 139, 0.3);
         transform: scale(1);
     }
 }
 
 .ai-translator-highlight:hover {
-    background: linear-gradient(135deg, rgba(52, 168, 83, 0.3) 0%, rgba(46, 149, 73, 0.22) 100%);
-    border-bottom-color: rgba(52, 168, 83, 0.55);
+    background: linear-gradient(135deg, rgba(96, 125, 139, 0.22) 0%, rgba(84, 110, 122, 0.16) 100%);
+    border-bottom-color: rgba(96, 125, 139, 0.42);
     transform: translateY(-1px);
 }
 
 /* 原文状态样式 */
 .ai-translator-original {
-    background: linear-gradient(135deg, rgba(144, 238, 144, 0.25) 0%, rgba(152, 251, 152, 0.18) 100%);
-    border-bottom: 2px solid rgba(144, 238, 144, 0.5);
+    background: linear-gradient(135deg, rgba(149, 117, 205, 0.12) 0%, rgba(159, 134, 192, 0.08) 100%);
+    border-bottom: 2px solid rgba(149, 117, 205, 0.28);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border-radius: 3px;
@@ -273,8 +273,8 @@
 }
 
 .ai-translator-original:hover {
-    background: linear-gradient(135deg, rgba(144, 238, 144, 0.35) 0%, rgba(152, 251, 152, 0.25) 100%);
-    border-bottom-color: rgba(144, 238, 144, 0.65);
+    background: linear-gradient(135deg, rgba(149, 117, 205, 0.18) 0%, rgba(159, 134, 192, 0.12) 100%);
+    border-bottom-color: rgba(149, 117, 205, 0.38);
     transform: translateY(-1px);
 }
 
