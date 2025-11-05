@@ -292,144 +292,123 @@
     border-color: rgba(66, 133, 244, 0.45);
 }
 
-/* Dark Mode Support - Follows system preference */
+/* Dark Mode Support - Warm paper texture aesthetic */
 @media (prefers-color-scheme: dark) {
-    /* Translation Button - Dark Mode */
+    /* Translation Button - Paper texture style */
     #ai-translator-button {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.92) 100%);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        box-shadow:
-            0 2px 8px rgba(0, 0, 0, 0.3),
-            0 4px 16px rgba(0, 0, 0, 0.2),
-            0 1px 2px rgba(0, 0, 0, 0.4);
+        background: rgba(61, 56, 51, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(82, 72, 63, 0.3);
+        box-shadow: 0 2px 8px rgba(27, 22, 18, 0.2);
     }
 
     #ai-translator-button:hover {
-        background: linear-gradient(135deg, rgba(51, 65, 85, 1) 0%, rgba(71, 85, 105, 0.98) 100%);
-        box-shadow:
-            0 4px 12px rgba(0, 0, 0, 0.4),
-            0 8px 24px rgba(0, 0, 0, 0.3),
-            0 2px 4px rgba(0, 0, 0, 0.5);
-        border-color: rgba(148, 163, 184, 0.3);
+        background: rgba(74, 69, 64, 0.98);
+        box-shadow: 0 4px 12px rgba(27, 22, 18, 0.3);
+        border-color: rgba(82, 72, 63, 0.4);
     }
 
-    /* Active State - Dark Mode */
-    @keyframes pulseDark {
+    /* Active State - Minimal design with warm accent */
+    @keyframes pulsePaper {
         0% {
-            box-shadow:
-                0 2px 8px rgba(59, 130, 246, 0.3),
-                0 4px 16px rgba(59, 130, 246, 0.2),
-                0 0 0 0 rgba(59, 130, 246, 0.4);
+            box-shadow: 0 2px 8px rgba(212, 165, 116, 0.25);
         }
         50% {
-            box-shadow:
-                0 4px 12px rgba(59, 130, 246, 0.35),
-                0 8px 24px rgba(59, 130, 246, 0.25),
-                0 0 0 8px rgba(59, 130, 246, 0);
+            box-shadow: 0 4px 16px rgba(212, 165, 116, 0.35);
         }
         100% {
-            box-shadow:
-                0 2px 8px rgba(59, 130, 246, 0.3),
-                0 4px 16px rgba(59, 130, 246, 0.2),
-                0 0 0 0 rgba(59, 130, 246, 0);
+            box-shadow: 0 2px 8px rgba(212, 165, 116, 0.25);
         }
     }
 
     #ai-translator-button.active {
-        border-color: rgba(59, 130, 246, 0.4);
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.85) 0%, rgba(37, 99, 235, 0.8) 100%);
-        animation: pulseDark 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        border-color: rgba(212, 165, 116, 0.5);
+        background: rgba(212, 165, 116, 0.9);
+        animation: pulsePaper 3s ease-in-out infinite;
     }
 
     #ai-translator-button.dragging {
-        box-shadow:
-            0 8px 20px rgba(0, 0, 0, 0.5),
-            0 12px 32px rgba(0, 0, 0, 0.4),
-            0 4px 8px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 8px 20px rgba(27, 22, 18, 0.4);
     }
 
-    /* Icon Color - Dark Mode */
+    /* Icon Color - Paper style */
     #ai-translator-icon {
-        color: #cbd5e1;
+        color: #d4cec4;
     }
 
     #ai-translator-button.active #ai-translator-icon {
-        color: white;
+        color: #2b2621;
     }
 
-    /* Long Press Spinner - Dark Mode */
+    /* Long Press Spinner - Warm tones */
     #ai-translator-button.long-pressing::before {
-        border: 2.5px solid rgba(148, 163, 184, 0.25);
-        border-top-color: rgba(203, 213, 225, 0.8);
-        border-right-color: rgba(203, 213, 225, 0.5);
+        border: 2.5px solid rgba(168, 159, 146, 0.2);
+        border-top-color: rgba(212, 206, 196, 0.8);
+        border-right-color: rgba(212, 206, 196, 0.5);
     }
 
-    /* Loading Overlay - Dark Mode */
+    /* Loading Overlay - Paper texture */
     .ai-translator-loading::after {
-        background-color: rgba(15, 23, 42, 0.8);
-        background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48c3R5bGU+QGtleWZyYW1lcyBzcGluIHtmcm9tIHt0cmFuc2Zvcm06IHJvdGF0ZSgwZGVnKX0gdG8ge3RyYW5zZm9ybTogcm90YXRlKDM2MGRlZyl9fSBjaXJjbGUge2FuaW1hdGlvbjogc3BpbiAxLjVzIGxpbmVhciBpbmZpbml0ZTsgdHJhbnNmb3JtLW9yaWdpbjogMTJweCAxMnB4O308L3N0eWxlPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMzEuNDE1OTI2NTM1ODk3OTMgMzEuNDE1OTI2NTM1ODk3OTMiIC8+PC9zdmc+');
+        background-color: rgba(43, 38, 33, 0.75);
+        background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48c3R5bGU+QGtleWZyYW1lcyBzcGluIHtmcm9tIHt0cmFuc2Zvcm06IHJvdGF0ZSgwZGVnKX0gdG8ge3RyYW5zZm9ybTogcm90YXRlKDM2MGRlZyl9fSBjaXJjbGUge2FuaW1hdGlvbjogc3BpbiAxLjVzIGxpbmVhciBpbmZpbml0ZTsgdHJhbnNmb3JtLW9yaWdpbjogMTJweCAxMnB4O308L3N0eWxlPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiNkNGE1NzQiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMzEuNDE1OTI2NTM1ODk3OTMgMzEuNDE1OTI2NTM1ODk3OTMiIC8+PC9zdmc+');
     }
 
-    /* Loading Indicator - Dark Mode */
+    /* Loading Indicator - Simple paper style */
     .ai-translator-loading-indicator {
-        background: rgba(30, 41, 59, 0.85);
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        box-shadow:
-            0 2px 8px rgba(0, 0, 0, 0.3),
-            0 4px 16px rgba(0, 0, 0, 0.2),
-            0 1px 2px rgba(0, 0, 0, 0.4);
-        color: #cbd5e1;
+        background: rgba(61, 56, 51, 0.9);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(82, 72, 63, 0.3);
+        box-shadow: 0 2px 8px rgba(27, 22, 18, 0.2);
+        color: #d4cec4;
     }
 
-    /* Translated Text Highlight - Dark Mode */
+    /* Translated Text Highlight - Minimal warm accent */
     .ai-translator-highlight {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(37, 99, 235, 0.18) 100%);
-        border-bottom: 2px solid rgba(59, 130, 246, 0.5);
+        background: rgba(212, 165, 116, 0.15);
+        border-bottom: 2px solid rgba(212, 165, 116, 0.4);
     }
 
-    @keyframes highlightFadeInDark {
+    @keyframes highlightFadeInPaper {
         0% {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(37, 99, 235, 0.3) 100%);
-            border-bottom-color: rgba(59, 130, 246, 0.7);
-            transform: scale(1.02);
+            background: rgba(212, 165, 116, 0.25);
+            border-bottom-color: rgba(212, 165, 116, 0.6);
         }
         100% {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(37, 99, 235, 0.18) 100%);
-            border-bottom-color: rgba(59, 130, 246, 0.5);
-            transform: scale(1);
+            background: rgba(212, 165, 116, 0.15);
+            border-bottom-color: rgba(212, 165, 116, 0.4);
         }
     }
 
     .ai-translator-highlight {
-        animation: highlightFadeInDark 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        animation: highlightFadeInPaper 0.4s ease-out forwards;
     }
 
     .ai-translator-highlight:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.35) 0%, rgba(37, 99, 235, 0.25) 100%);
-        border-bottom-color: rgba(59, 130, 246, 0.65);
+        background: rgba(212, 165, 116, 0.22);
+        border-bottom-color: rgba(212, 165, 116, 0.5);
     }
 
-    /* Original Text State - Dark Mode */
+    /* Original Text State - Subtle lavender for contrast */
     .ai-translator-original {
-        background: linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(147, 51, 234, 0.15) 100%);
-        border-bottom: 2px solid rgba(168, 85, 247, 0.45);
+        background: rgba(168, 159, 180, 0.12);
+        border-bottom: 2px solid rgba(168, 159, 180, 0.35);
     }
 
     .ai-translator-original:hover {
-        background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(147, 51, 234, 0.22) 100%);
-        border-bottom-color: rgba(168, 85, 247, 0.6);
+        background: rgba(168, 159, 180, 0.18);
+        border-bottom-color: rgba(168, 159, 180, 0.45);
     }
 
-    /* Translatable Element Target - Dark Mode */
+    /* Translatable Element Target - Minimal style */
     .ai-translator-target {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
-        border: 1px dashed rgba(59, 130, 246, 0.4);
+        background: rgba(212, 165, 116, 0.08);
+        border: 1px dashed rgba(212, 165, 116, 0.3);
     }
 
     .ai-translator-target:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.12) 100%);
-        border-color: rgba(59, 130, 246, 0.6);
+        background: rgba(212, 165, 116, 0.12);
+        border-color: rgba(212, 165, 116, 0.4);
     }
 }
