@@ -293,10 +293,25 @@ document.addEventListener('DOMContentLoaded', function () {
             baseUrlInput.value = 'https://api.openai.com/v1';
         }
 
-        // Note: We no longer restore model list on page load
-        // User must verify API each time to get fresh model list
-        
-        // Only restore the previously selected model value if available
+        // Restore model list if available (user has verified API before)
+        if (result.availableModels && result.availableModels.length > 0) {
+            allAvailableModels = result.availableModels;
+            filteredModels = [...result.availableModels];
+
+            // Update model dropdown
+            modelSearchInput.placeholder = 'Type to search models...';
+            modelSearchInput.removeAttribute('readonly');
+            updateModelDropdown(filteredModels);
+
+            // Show model section since we have models
+            modelSection.classList.remove('hidden');
+            modelSection.classList.add('visible');
+            if (navModelLink) {
+                navModelLink.classList.remove('hidden');
+            }
+        }
+
+        // Restore the previously selected model value if available
         if (result.model) {
             modelSelect.value = result.model;
             modelSearchInput.value = result.model;
@@ -427,11 +442,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Clear Credentials: remove apiKey/baseUrl/model and reset inputs
     if (clearCredentialsButton) {
         clearCredentialsButton.addEventListener('click', function() {
-            chrome.storage.sync.remove(['apiKey','baseUrl','model'], function() {
+            chrome.storage.sync.remove(['apiKey','baseUrl','model','availableModels','lastVerified'], function() {
                 apiKeyInput.value = '';
                 baseUrlInput.value = '';
                 modelSelect.value = '';
                 modelSearchInput.value = '';
+                allAvailableModels = [];
+                filteredModels = [];
                 modelDropdown.innerHTML = '<div class="dropdown-item">Cleared. Verify again to load models.</div>';
                 modelSection.classList.add('hidden');
                 modelSection.classList.remove('visible');
@@ -578,13 +595,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 navModelLink.classList.remove('hidden');
             }
 
-            // Save API settings only (no longer cache model list)
+            // Save API settings and cache model list for future use
             chrome.storage.sync.set({
                 apiKey: apiKey,
                 baseUrl: baseUrl,
+                availableModels: models,
                 lastVerified: new Date().toISOString()
             }, function () {
-                console.log('API settings saved');
+                console.log('API settings and models saved');
             });
 
         } catch (error) {
