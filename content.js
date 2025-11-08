@@ -1570,11 +1570,26 @@ function createTranslatedSpan(translatedText, originalText) {
 // Add functions: clear all translations and handle long press action
 function clearAllTranslations() {
     const spans = document.querySelectorAll('.ai-translator-highlight, .ai-translator-original');
+    if (!spans.length) {
+        return;
+    }
+
+    const parentsToNormalize = new Set();
+
     spans.forEach(span => {
-        const original = span.dataset.originalText;
-        const textNode = document.createTextNode(original);
-        if (span.parentNode) {
-            span.parentNode.replaceChild(textNode, span);
+        if (!span) {
+            return;
+        }
+
+        const restoredNode = replaceTranslatedNodeWithOriginal(span);
+        if (restoredNode && restoredNode.parentNode) {
+            parentsToNormalize.add(restoredNode.parentNode);
+        }
+    });
+
+    parentsToNormalize.forEach(parent => {
+        if (parent && typeof parent.normalize === 'function') {
+            parent.normalize();
         }
     });
 }

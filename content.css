@@ -37,35 +37,40 @@
     border-color: rgba(0, 0, 0, 0.12);
 }
 
-@keyframes pulse {
-    0% {
-        box-shadow:
-            0 2px 8px rgba(96, 125, 139, 0.15),
-            0 4px 16px rgba(96, 125, 139, 0.1),
-            0 0 0 0 rgba(96, 125, 139, 0.25);
+/* 流畅的呼吸动画 - 只改变透明度，性能最优 */
+@keyframes breathe {
+    0%, 100% {
+        opacity: 0.9;
     }
     50% {
-        box-shadow:
-            0 4px 12px rgba(96, 125, 139, 0.18),
-            0 8px 24px rgba(96, 125, 139, 0.12),
-            0 0 0 8px rgba(96, 125, 139, 0);
-    }
-    100% {
-        box-shadow:
-            0 2px 8px rgba(96, 125, 139, 0.15),
-            0 4px 16px rgba(96, 125, 139, 0.1),
-            0 0 0 0 rgba(96, 125, 139, 0);
+        opacity: 1;
     }
 }
 
+/* 翻译状态：简约平面的绿色系玻璃圆球 */
 #ai-translator-button.active {
-    border-color: rgba(96, 125, 139, 0.25);
-    /* 使用柔和的蓝灰色渐变，低调不抢眼 */
-    background: linear-gradient(135deg, rgba(96, 125, 139, 0.92) 0%, rgba(84, 110, 122, 0.88) 100%);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    transform: scale(1.05);
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    /* 平面的绿色系玻璃质感 */
+    background: linear-gradient(135deg,
+        rgba(209, 250, 229, 0.96) 0%,
+        rgba(187, 247, 208, 0.94) 100%);
+
+    /* 毛玻璃效果 */
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+
+    /* 明显的绿色边框 */
+    border: 1px solid rgba(74, 222, 128, 0.65);
+
+    /* 简洁平面的阴影 */
+    box-shadow:
+        0 4px 16px rgba(5, 150, 105, 0.22),
+        0 8px 32px rgba(5, 150, 105, 0.14);
+
+    /* 明显的缩放 */
+    transform: scale(1.06);
+
+    /* 流畅的呼吸动画 */
+    animation: breathe 2.2s ease-in-out infinite;
 }
 
 #ai-translator-button.dragging {
@@ -141,10 +146,20 @@
     font-size: 24px;
     font-weight: 600;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* 固定字体，确保在所有网页上显示一致 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
+    /* 禁止字体继承 */
+    font-style: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
 }
 
 #ai-translator-button.active #ai-translator-icon {
-    color: white;
+    /* 深绿灰色 */
+    color: #065f46;
+    /* 清晰的白色文字阴影 */
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 1);
+    transform: scale(0.98);
 }
 
 .ai-translator-target {
@@ -233,8 +248,8 @@
 
 /* 翻译后的文本高亮 */
 .ai-translator-highlight {
-    background: linear-gradient(135deg, rgba(96, 125, 139, 0.15) 0%, rgba(84, 110, 122, 0.1) 100%);
-    border-bottom: 2px solid rgba(96, 125, 139, 0.3);
+    background: linear-gradient(135deg, rgba(234, 228, 216, 0.35) 0%, rgba(245, 241, 232, 0.25) 100%);
+    border-bottom: 2px solid rgba(200, 181, 160, 0.28);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border-radius: 3px;
@@ -245,27 +260,27 @@
 
 @keyframes highlightFadeIn {
     0% {
-        background: linear-gradient(135deg, rgba(96, 125, 139, 0.25) 0%, rgba(84, 110, 122, 0.2) 100%);
-        border-bottom-color: rgba(96, 125, 139, 0.5);
+        background: linear-gradient(135deg, rgba(234, 228, 216, 0.5) 0%, rgba(245, 241, 232, 0.4) 100%);
+        border-bottom-color: rgba(200, 181, 160, 0.42);
         transform: scale(1.02);
     }
     100% {
-        background: linear-gradient(135deg, rgba(96, 125, 139, 0.15) 0%, rgba(84, 110, 122, 0.1) 100%);
-        border-bottom-color: rgba(96, 125, 139, 0.3);
+        background: linear-gradient(135deg, rgba(234, 228, 216, 0.35) 0%, rgba(245, 241, 232, 0.25) 100%);
+        border-bottom-color: rgba(200, 181, 160, 0.28);
         transform: scale(1);
     }
 }
 
 .ai-translator-highlight:hover {
-    background: linear-gradient(135deg, rgba(96, 125, 139, 0.22) 0%, rgba(84, 110, 122, 0.16) 100%);
-    border-bottom-color: rgba(96, 125, 139, 0.42);
+    background: linear-gradient(135deg, rgba(234, 228, 216, 0.45) 0%, rgba(245, 241, 232, 0.35) 100%);
+    border-bottom-color: rgba(200, 181, 160, 0.38);
     transform: translateY(-1px);
 }
 
 /* 原文状态样式 */
 .ai-translator-original {
-    background: linear-gradient(135deg, rgba(149, 117, 205, 0.12) 0%, rgba(159, 134, 192, 0.08) 100%);
-    border-bottom: 2px solid rgba(149, 117, 205, 0.28);
+    background: linear-gradient(135deg, rgba(239, 224, 219, 0.32) 0%, rgba(245, 232, 228, 0.22) 100%);
+    border-bottom: 2px solid rgba(210, 180, 170, 0.25);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border-radius: 3px;
@@ -273,8 +288,8 @@
 }
 
 .ai-translator-original:hover {
-    background: linear-gradient(135deg, rgba(149, 117, 205, 0.18) 0%, rgba(159, 134, 192, 0.12) 100%);
-    border-bottom-color: rgba(149, 117, 205, 0.38);
+    background: linear-gradient(135deg, rgba(239, 224, 219, 0.42) 0%, rgba(245, 232, 228, 0.32) 100%);
+    border-bottom-color: rgba(210, 180, 170, 0.35);
     transform: translateY(-1px);
 }
 
