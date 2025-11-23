@@ -52,3 +52,5 @@ pids
 *.pid
 *.seed
 *.pid.lock
+
+.claude

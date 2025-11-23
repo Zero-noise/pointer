@@ -6,35 +6,58 @@
     <meta charset="UTF-8">
     <style>
         :root {
-            --primary-color: #2563eb;
-            --primary-hover: #1d4ed8;
-            --primary-light: #dbeafe;
-            --success-color: #059669;
-            --success-hover: #047857;
-            --success-light: #d1fae5;
-            --error-color: #dc2626;
-            --error-light: #fee2e2;
-            --error-hover: #b91c1c;
-            --border-color: #e5e7eb;
-            --border-focus: #93c5fd;
-            --background: #fafbfc;
-            --background-secondary: #f8fafc;
-            --surface: #ffffff;
-            --text-primary: #111827;
-            --text-secondary: #374151;
-            --text-muted: #6b7280;
-            --text-disabled: #9ca3af;
-            --secondary-bg: #ffffff;
-            --secondary-hover-bg: #f3f4f6;
-            --secondary-border: #d1d5db;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            --ring-focus: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-            --border-radius: 12px;
-            --border-radius-sm: 8px;
+            /* 暖色调纸质感色系 */
+            --primary-color: #d4956c;
+            --primary-hover: #c27d54;
+            --primary-light: #f5e8dd;
+            --success-color: #8b9d77;
+            --success-hover: #768966;
+            --success-light: #e8ede1;
+            --error-color: #c97c6f;
+            --error-light: #f5e5e2;
+            --error-hover: #b56759;
+            --border-color: #e8dac8;
+            --border-focus: #d4bba3;
+            --background: #f8f3eb;
+            --background-secondary: #f2ebe0;
+            --surface: #fdfaf5;
+            --text-primary: #4a3f35;
+            --text-secondary: #6b5f52;
+            --text-muted: #978b7d;
+            --text-disabled: #b8ae9f;
+            --secondary-bg: #fdfaf5;
+            --secondary-hover-bg: #f5ede3;
+            --secondary-border: #dccfbb;
+            --transition: all 0.2s ease;
+            --border-radius: 2px;
+            --border-radius-sm: 2px;
+        }
+
+        /* Dark Mode - 深色纸质感 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #b8936d;
+                --primary-hover: #a07d5a;
+                --primary-light: #3d362e;
+                --success-color: #8a9b76;
+                --success-hover: #9fad8a;
+                --success-light: #2d3229;
+                --error-color: #b87c6f;
+                --error-light: #3b2f2d;
+                --error-hover: #c98c7e;
+                --border-color: #3d3530;
+                --border-focus: #5a4d43;
+                --background: #2a2420;
+                --background-secondary: #322c26;
+                --surface: #352f28;
+                --text-primary: #e8dccf;
+                --text-secondary: #c9bdb0;
+                --text-muted: #9a8d7e;
+                --text-disabled: #6b6158;
+                --secondary-bg: #352f28;
+                --secondary-hover-bg: #3d362e;
+                --secondary-border: #4a4037;
+            }
         }
 
         body {
@@ -43,8 +66,8 @@
             min-height: 100vh;
             color: var(--text-primary);
             background: var(--background);
-            line-height: 1.6;
-            font-size: 14px;
+            line-height: 1.65;
+            font-size: 15px;
             font-weight: 400;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -52,10 +75,10 @@
 
         .header {
             width: 100%;
-            padding: 24px 24px 20px;
+            padding: 32px 24px 28px;
             box-sizing: border-box;
             background: var(--surface);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 2px dashed var(--border-color);
         }
 
         .header-inner {
@@ -64,11 +87,11 @@
         }
 
         h1 {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 28px;
+            font-weight: 500;
             color: var(--text-primary);
-            margin: 0 0 6px;
-            letter-spacing: -0.025em;
+            margin: 0 0 10px;
+            letter-spacing: -0.01em;
             line-height: 1.3;
         }
 
@@ -77,13 +100,13 @@
             color: var(--text-secondary);
             font-size: 15px;
             font-weight: 400;
-            line-height: 1.4;
+            line-height: 1.6;
         }
 
         .container {
             width: 100%;
             box-sizing: border-box;
-            padding: 24px 24px 48px;
+            padding: 28px 24px 56px;
         }
 
         .container-inner {
@@ -96,26 +119,45 @@
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .form-group::after {
+            content: '';
+            position: absolute;
+            bottom: -14px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, var(--border-color) 40%, transparent 40%);
+            background-size: 8px 1px;
+            background-repeat: repeat-x;
+            opacity: 0.5;
+        }
+
+        .form-group:last-child::after {
+            display: none;
         }
 
         label {
             display: block;
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             color: var(--text-primary);
             font-size: 14px;
             line-height: 1.5;
+            letter-spacing: 0.005em;
         }
 
         input[type="text"],
         input[type="password"],
         select {
             width: 100%;
-            padding: 14px 16px;
-            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            border: 2px solid var(--border-color);
             border-radius: var(--border-radius-sm);
-            font-size: 14px;
+            font-size: 15px;
             font-family: inherit;
             background-color: var(--surface);
             color: var(--text-primary);
@@ -127,13 +169,14 @@
         input[type="password"]:hover,
         select:hover {
             border-color: var(--border-focus);
+            border-style: solid;
         }
 
         input[type="text"]:focus,
         input[type="password"]:focus,
         select:focus {
             border-color: var(--primary-color);
-            box-shadow: var(--ring-focus);
+            border-style: solid;
             outline: none;
         }
 
@@ -145,24 +188,24 @@
         .hint {
             font-size: 13px;
             color: var(--text-muted);
-            margin-top: 6px;
-            line-height: 1.4;
+            margin-top: 8px;
+            line-height: 1.65;
         }
 
         .status {
-            padding: 12px 16px;
-            margin-top: 16px;
+            padding: 14px 16px;
+            margin-top: 18px;
             border-radius: var(--border-radius-sm);
             font-size: 14px;
             display: none;
             animation: fadeIn 0.3s ease-out;
-            font-weight: 500;
+            font-weight: 400;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(-8px);
+                transform: translateY(-4px);
             }
 
             to {
@@ -174,22 +217,22 @@
         .success {
             background-color: var(--success-light);
             color: var(--success-color);
-            border: 1px solid var(--success-color);
+            border: 2px solid var(--success-color);
         }
 
         .error {
             background-color: var(--error-light);
             color: var(--error-color);
-            border: 1px solid var(--error-color);
+            border: 2px solid var(--error-color);
         }
 
         button {
             background-color: var(--primary-color);
-            color: white;
-            border: none;
+            color: var(--surface);
+            border: 2px solid var(--primary-color);
             border-radius: var(--border-radius-sm);
-            padding: 14px 28px;
-            font-size: 14px;
+            padding: 13px 26px;
+            font-size: 15px;
             font-weight: 500;
             font-family: inherit;
             cursor: pointer;
@@ -197,64 +240,89 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow-sm);
-            letter-spacing: 0.025em;
+            letter-spacing: 0.01em;
         }
 
         button:hover:not(:disabled) {
             background-color: var(--primary-hover);
-            box-shadow: var(--shadow-md);
-            transform: translateY(-1px);
+            border-color: var(--primary-hover);
         }
 
         button:active:not(:disabled) {
-            transform: translateY(0);
-            box-shadow: var(--shadow-sm);
+            opacity: 0.85;
         }
 
         button:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
         button:focus-visible {
-            outline: none;
-            box-shadow: var(--ring-focus), var(--shadow-md);
+            outline: 2px dashed var(--primary-color);
+            outline-offset: 3px;
         }
 
         .section-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 500;
             margin: 0;
             color: var(--text-primary);
-            letter-spacing: -0.025em;
+            letter-spacing: -0.005em;
+            position: relative;
+            padding-bottom: 14px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 2px;
+            background-color: var(--primary-color);
         }
 
         .api-section,
         .model-section,
         .basic-settings {
-            padding: 28px;
+            padding: 32px;
             border-radius: var(--border-radius);
             background-color: var(--surface);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-sm);
+            border: 2px solid var(--border-color);
             transition: var(--transition);
             position: relative;
+            box-shadow: 0 1px 2px rgba(74, 63, 53, 0.04);
         }
 
         .api-section:hover,
         .model-section:hover,
         .basic-settings:hover {
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 4px 12px rgba(74, 63, 53, 0.08), 0 2px 4px rgba(74, 63, 53, 0.06);
+            transform: translateY(-1px);
+        }
+
+        @media (prefers-color-scheme: dark) {
+
+            .api-section,
+            .model-section,
+            .basic-settings {
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            }
+
+            .api-section:hover,
+            .model-section:hover,
+            .basic-settings:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.25);
+            }
         }
 
         .loading-spinner {
             display: inline-block;
             margin-left: 12px;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: rgba(255, 255, 255, 0.8);
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--background-secondary);
+            border-top-color: var(--surface);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -271,10 +339,12 @@
 
         .verify-button {
             background-color: var(--success-color);
+            border-color: var(--success-color);
         }
 
         .verify-button:hover:not(:disabled) {
             background-color: var(--success-hover);
+            border-color: var(--success-hover);
         }
 
         .slider-container {
@@ -285,10 +355,10 @@
 
         .slider-container input[type="range"] {
             flex: 1;
-            height: 6px;
+            height: 4px;
             background: var(--border-color);
             outline: none;
-            border-radius: 3px;
+            border-radius: 2px;
             appearance: none;
             transition: var(--transition);
         }
@@ -299,52 +369,51 @@
 
         .slider-container input[type="range"]::-webkit-slider-thumb {
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             background: var(--primary-color);
-            border-radius: 50%;
+            border-radius: 2px;
             cursor: pointer;
             transition: var(--transition);
-            border: 3px solid var(--surface);
-            box-shadow: var(--shadow-md);
+            border: 2px solid var(--surface);
         }
 
         .slider-container input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: var(--shadow-lg);
+            background: var(--primary-hover);
         }
 
         .slider-container span {
-            min-width: 48px;
+            min-width: 52px;
             text-align: center;
             font-weight: 500;
             color: var(--text-primary);
             background-color: var(--background-secondary);
             padding: 6px 12px;
             border-radius: var(--border-radius-sm);
-            border: 1px solid var(--border-color);
+            border: 2px solid var(--border-color);
             font-size: 13px;
         }
 
         .section-header {
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
 
         .checkbox-label {
             display: flex;
             align-items: center;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 400;
             color: var(--text-primary);
         }
 
         input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-right: 12px;
+            width: 17px;
+            height: 17px;
+            margin-right: 10px;
             accent-color: var(--primary-color);
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 2px;
+            border: 2px solid var(--border-color);
         }
 
         .model-search-container {
@@ -353,7 +422,7 @@
 
         #modelSearch {
             cursor: pointer;
-            background-color: white;
+            background-color: var(--surface);
         }
 
         #modelSearch:focus {
@@ -362,18 +431,20 @@
 
         .model-dropdown {
             position: absolute;
-            top: 100%;
+            top: calc(100% + 2px);
             left: 0;
             right: 0;
             background-color: var(--surface);
-            border: 1px solid var(--border-color);
-            border-top: none;
-            border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
             max-height: 240px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
-            box-shadow: var(--shadow-lg);
+        }
+
+        .model-section {
+            z-index: 10;
         }
 
         .model-dropdown.show {
@@ -381,10 +452,10 @@
         }
 
         .model-item {
-            padding: 12px 16px;
+            padding: 11px 14px;
             cursor: pointer;
             transition: var(--transition);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px dashed var(--border-color);
             font-size: 14px;
             color: var(--text-primary);
         }
@@ -400,7 +471,7 @@
 
         .model-item.selected {
             background-color: var(--primary-color);
-            color: white;
+            color: var(--surface);
             font-weight: 500;
         }
 
@@ -431,18 +502,16 @@
 
         .custom-dropdown {
             position: absolute;
-            top: 100%;
+            top: calc(100% + 2px);
             left: 0;
             right: 0;
             background-color: var(--surface);
-            border: 1px solid var(--border-color);
-            border-top: none;
-            border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
             max-height: 240px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
-            box-shadow: var(--shadow-lg);
         }
 
         .custom-dropdown.show {
@@ -450,10 +519,10 @@
         }
 
         .custom-item {
-            padding: 12px 16px;
+            padding: 11px 14px;
             cursor: pointer;
             transition: var(--transition);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px dashed var(--border-color);
             font-size: 14px;
             color: var(--text-primary);
         }
@@ -469,7 +538,7 @@
 
         .custom-item.selected {
             background-color: var(--primary-color);
-            color: white;
+            color: var(--surface);
             font-weight: 500;
         }
 
@@ -479,11 +548,11 @@
 
         /* Status messages aligned with JS helpers */
         .status-message {
-            padding: 12px 16px;
-            margin-top: 16px;
+            padding: 14px 16px;
+            margin-top: 18px;
             border-radius: var(--border-radius-sm);
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 400;
             display: none;
             animation: fadeIn 0.3s ease-out;
         }
@@ -491,71 +560,118 @@
         .status-success {
             background-color: var(--success-light);
             color: var(--success-color);
-            border: 1px solid var(--success-color);
+            border: 2px solid var(--success-color);
         }
 
         .status-error {
             background-color: var(--error-light);
             color: var(--error-color);
-            border: 1px solid var(--error-color);
+            border: 2px solid var(--error-color);
         }
 
         /* Visibility helpers used by options.js */
-        .hidden { display: none !important; }
-        .visible { display: block; }
+        .hidden {
+            display: none !important;
+        }
+
+        .visible {
+            display: block;
+        }
 
         /* Layout: Sidebar + Content (Scheme A) */
-        html { scroll-behavior: smooth; }
+        html {
+            scroll-behavior: smooth;
+        }
+
         .layout {
             display: flex;
-            gap: 24px;
+            gap: 28px;
             align-items: flex-start;
         }
+
         .sidebar {
             position: sticky;
-            top: 24px;
-            width: 220px;
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-sm);
-            padding: 20px;
+            top: 28px;
+            width: 180px;
+            background: transparent;
+            padding: 0;
+            border-left: 1px solid var(--border-color);
         }
+
         .sidebar-title {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
-            text-transform: uppercase;
             letter-spacing: .08em;
-            margin: 0 0 8px;
+            margin: 0 0 12px;
+            font-weight: 500;
+            padding-left: 16px;
+            text-transform: uppercase;
         }
+
         .nav-list {
             list-style: none;
             padding: 0;
             margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 0;
         }
+
         .nav-link {
             display: block;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text-primary);
+            padding: 11px 16px;
+            color: var(--text-secondary);
             text-decoration: none;
-            border: 1px solid transparent;
+            transition: var(--transition);
+            font-size: 14px;
+            border-left: 3px solid transparent;
+            margin-left: -1px;
+            position: relative;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            opacity: 0;
             transition: var(--transition);
         }
+
         .nav-link:hover {
+            color: var(--text-primary);
+            border-left-color: var(--border-focus);
             background: var(--background-secondary);
-            border-color: var(--border-color);
         }
+
+        .nav-link:hover::before {
+            opacity: 0.6;
+        }
+
         .nav-link.active {
-            background: var(--primary-light);
-            border-color: var(--primary-color);
             color: var(--primary-color);
-            font-weight: 600;
+            border-left-color: var(--primary-color);
+            background: var(--primary-light);
+            font-weight: 500;
         }
-        .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+
+        .nav-link.active::before {
+            background: var(--primary-color);
+            opacity: 1;
+        }
+
+        .content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
     </style>
 </head>
 
@@ -569,115 +685,127 @@
 
     <main class="container">
         <div class="container-inner">
-        <div class="layout">
-            <nav class="sidebar" aria-label="Section navigation">
-                <p class="sidebar-title" data-i18n="navTitle">Settings</p>
-                <ul class="nav-list">
-                    <li><a class="nav-link" href="#apiSection" data-nav="api" data-i18n="navApi">API</a></li>
-                    <li><a id="navModelLink" class="nav-link hidden" href="#modelSection" data-nav="model" data-i18n="navModel">Model</a></li>
-                    <li><a class="nav-link" href="#interfaceSection" data-nav="interface" data-i18n="navInterface">Interface</a></li>
-                </ul>
-            </nav>
-            <div class="content">
+            <div class="layout">
+                <nav class="sidebar" aria-label="Section navigation">
+                    <p class="sidebar-title" data-i18n="navTitle">Settings</p>
+                    <ul class="nav-list">
+                        <li><a class="nav-link" href="#apiSection" data-nav="api" data-i18n="navApi">API</a></li>
+                        <li><a id="navModelLink" class="nav-link hidden" href="#modelSection" data-nav="model"
+                                data-i18n="navModel">Model</a></li>
+                        <li><a class="nav-link" href="#interfaceSection" data-nav="interface"
+                                data-i18n="navInterface">Interface</a></li>
+                    </ul>
+                </nav>
+                <div class="content">
 
-        <div class="api-section" id="apiSection">
-            <div class="section-header">
-                <h2 class="section-title" data-i18n="apiConfig">API Configuration</h2>
-            </div>
+                    <div class="api-section" id="apiSection">
+                        <div class="section-header">
+                            <h2 class="section-title" data-i18n="apiConfig">API Configuration</h2>
+                        </div>
 
-            <div class="form-group">
-                <label for="apiKey" data-i18n="labelApiKey">API Key:</label>
-                <input type="password" id="apiKey" placeholder="Enter your API key">
-                <div class="hint" data-i18n="hintApiKey">Your API key will be stored securely in your browser.</div>
-            </div>
+                        <div class="form-group">
+                            <label for="apiKey" data-i18n="labelApiKey">API Key:</label>
+                            <input type="password" id="apiKey" placeholder="Enter your API key">
+                            <div class="hint" data-i18n="hintApiKey">Your API key will be stored securely in your
+                                browser.</div>
+                        </div>
 
-            <div class="form-group">
-                <label for="baseUrl" data-i18n="labelBaseUrl">API Base URL:</label>
-                <input type="text" id="baseUrl" placeholder="Enter API base URL">
-                <div class="hint" data-i18n="hintBaseUrl">For OpenAI: https://api.openai.com/v1</div>
-            </div>
+                        <div class="form-group">
+                            <label for="baseUrl" data-i18n="labelBaseUrl">API Base URL:</label>
+                            <input type="text" id="baseUrl" placeholder="Enter API base URL">
+                            <div class="hint" data-i18n="hintBaseUrl">For OpenAI: https://api.openai.com/v1</div>
+                        </div>
 
-            <button id="verifyButton" class="verify-button" data-i18n="buttonVerify">Verify API & Load Models</button>
-            <div id="verifyStatus" class="status-message"></div>
-        </div>
+                        <button id="verifyButton" class="verify-button" data-i18n="buttonVerify">Verify API & Load
+                            Models</button>
+                        <div id="verifyStatus" class="status-message"></div>
+                    </div>
 
-        <div class="model-section hidden" id="modelSection">
-            <div class="section-header">
-                <h2 class="section-title" data-i18n="modelConfig">AI Model Configuration</h2>
-            </div>
+                    <div class="model-section hidden" id="modelSection">
+                        <div class="section-header">
+                            <h2 class="section-title" data-i18n="modelConfig">AI Model Configuration</h2>
+                        </div>
 
-            <div class="form-group model-option">
-                <label for="model" data-i18n="labelModel">Select AI Model:</label>
-                <div class="model-search-container">
-                    <input type="text" id="modelSearch" placeholder="Type to search models..." readonly>
-                    <div class="model-dropdown" id="modelDropdown">
-                        <div class="model-item">Loading models...</div>
+                        <div class="form-group model-option">
+                            <label for="model" data-i18n="labelModel">Select AI Model:</label>
+                            <div class="model-search-container">
+                                <input type="text" id="modelSearch" placeholder="Type to search models..." readonly>
+                                <div class="model-dropdown" id="modelDropdown">
+                                    <div class="model-item">Loading models...</div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="model" value="">
+                            <div class="hint" data-i18n="hintModel">Type to search and select the AI model to use for
+                                translation</div>
+                        </div>
+
+                        <button id="saveApiButton" data-i18n="buttonSaveApi">Save AI Model</button>
+                        <div id="apiStatusMessage" class="status-message"></div>
+                    </div>
+
+                    <div class="basic-settings" id="interfaceSection">
+                        <div class="section-header">
+                            <h2 class="section-title" data-i18n="interfaceSettings">Interface Settings</h2>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="uiLang" data-i18n="labelUiLang">Interface Language:</label>
+                            <div class="custom-select-container">
+                                <input type="text" id="uiLangSearch" placeholder="Select language..." readonly>
+                                <div class="custom-dropdown" id="uiLangDropdown">
+                                    <!-- Language options will be generated dynamically by JavaScript -->
+                                </div>
+                            </div>
+                            <input type="hidden" id="uiLang" value="en">
+                            <div class="hint" data-i18n="hintUiLang">Set the display language of the interface</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="buttonPosition" data-i18n="labelButtonPosition">Initial Button Position:</label>
+                            <div class="custom-select-container">
+                                <input type="text" id="buttonPositionSearch" placeholder="Select position..." readonly>
+                                <div class="custom-dropdown" id="buttonPositionDropdown">
+                                    <div class="custom-item" data-value="bottom-right" data-i18n="optionPosBottomRight">
+                                        Bottom Right</div>
+                                    <div class="custom-item" data-value="bottom-left" data-i18n="optionPosBottomLeft">
+                                        Bottom Left</div>
+                                    <div class="custom-item" data-value="top-right" data-i18n="optionPosTopRight">Top
+                                        Right</div>
+                                    <div class="custom-item" data-value="top-left" data-i18n="optionPosTopLeft">Top Left
+                                    </div>
+                                    <div class="custom-item" data-value="custom" data-i18n="optionPosCustom">Custom
+                                        Position</div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="buttonPosition" value="bottom-right">
+                            <div class="hint" data-i18n="hintButtonPosition">You can also drag the button on any webpage
+                                to set a
+                                custom position</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="buttonSize" data-i18n="labelButtonSize">Button Size:</label>
+                            <div class="slider-container">
+                                <input type="range" id="buttonSize" min="32" max="128" step="4" value="64">
+                                <span id="buttonSizeValue">64px</span>
+                            </div>
+                            <div class="hint" data-i18n="hintButtonSize">Adjust the size of the translation button</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoSave">
+                                <span data-i18n="labelAutoSave">Auto-save settings</span>
+                            </label>
+                            <div class="hint" data-i18n="hintAutoSave">Automatically save interface settings when you
+                                make changes</div>
+                        </div>
+
+                        <button id="saveButton" data-i18n="buttonSave">Save Interface Settings</button>
+                        <div id="statusMessage" class="status-message"></div>
                     </div>
                 </div>
-                <input type="hidden" id="model" value="">
-                <div class="hint" data-i18n="hintModel">Type to search and select the AI model to use for translation</div>
             </div>
-
-            <button id="saveApiButton" data-i18n="buttonSaveApi">Save AI Model</button>
-            <div id="apiStatusMessage" class="status-message"></div>
-        </div>
-
-        <div class="basic-settings" id="interfaceSection">
-            <div class="section-header">
-                <h2 class="section-title" data-i18n="interfaceSettings">Interface Settings</h2>
-            </div>
-
-            <div class="form-group">
-                <label for="uiLang" data-i18n="labelUiLang">Interface Language:</label>
-                <div class="custom-select-container">
-                    <input type="text" id="uiLangSearch" placeholder="Select language..." readonly>
-                    <div class="custom-dropdown" id="uiLangDropdown">
-                        <!-- Language options will be generated dynamically by JavaScript -->
-                    </div>
-                </div>
-                <input type="hidden" id="uiLang" value="en">
-                <div class="hint" data-i18n="hintUiLang">Set the display language of the interface</div>
-            </div>
-
-            <div class="form-group">
-                <label for="buttonPosition" data-i18n="labelButtonPosition">Initial Button Position:</label>
-                <div class="custom-select-container">
-                    <input type="text" id="buttonPositionSearch" placeholder="Select position..." readonly>
-                    <div class="custom-dropdown" id="buttonPositionDropdown">
-                        <div class="custom-item" data-value="bottom-right" data-i18n="optionPosBottomRight">Bottom Right</div>
-                        <div class="custom-item" data-value="bottom-left" data-i18n="optionPosBottomLeft">Bottom Left</div>
-                        <div class="custom-item" data-value="top-right" data-i18n="optionPosTopRight">Top Right</div>
-                        <div class="custom-item" data-value="top-left" data-i18n="optionPosTopLeft">Top Left</div>
-                        <div class="custom-item" data-value="custom" data-i18n="optionPosCustom">Custom Position</div>
-                    </div>
-                </div>
-                <input type="hidden" id="buttonPosition" value="bottom-right">
-                <div class="hint" data-i18n="hintButtonPosition">You can also drag the button on any webpage to set a
-                    custom position</div>
-            </div>
-
-            <div class="form-group">
-                <label for="buttonSize" data-i18n="labelButtonSize">Button Size:</label>
-                <div class="slider-container">
-                    <input type="range" id="buttonSize" min="32" max="128" step="4" value="64">
-                    <span id="buttonSizeValue">64px</span>
-                </div>
-                <div class="hint" data-i18n="hintButtonSize">Adjust the size of the translation button</div>
-            </div>
-
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="autoSave">
-                    <span data-i18n="labelAutoSave">Auto-save settings</span>
-                </label>
-                <div class="hint" data-i18n="hintAutoSave">Automatically save interface settings when you make changes</div>
-            </div>
-
-            <button id="saveButton" data-i18n="buttonSave">Save Interface Settings</button>
-            <div id="statusMessage" class="status-message"></div>
-        </div>
-            </div>
-        </div>
         </div>
     </main>
 
