@@ -2,813 +2,1041 @@
 <html>
 
 <head>
-    <title>Pointer Options</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pointer Options</title>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        :root {
-            /* 暖色调纸质感色系 */
-            --primary-color: #d4956c;
-            --primary-hover: #c27d54;
-            --primary-light: #f5e8dd;
-            --success-color: #8b9d77;
-            --success-hover: #768966;
-            --success-light: #e8ede1;
-            --error-color: #c97c6f;
-            --error-light: #f5e5e2;
-            --error-hover: #b56759;
-            --border-color: #e8dac8;
-            --border-focus: #d4bba3;
-            --background: #f8f3eb;
-            --background-secondary: #f2ebe0;
-            --surface: #fdfaf5;
-            --text-primary: #4a3f35;
-            --text-secondary: #6b5f52;
-            --text-muted: #978b7d;
-            --text-disabled: #b8ae9f;
-            --secondary-bg: #fdfaf5;
-            --secondary-hover-bg: #f5ede3;
-            --secondary-border: #dccfbb;
-            --transition: all 0.2s ease;
-            --border-radius: 2px;
-            --border-radius-sm: 2px;
-        }
+        /* ═══════════════════════════════════════════════════════════════════════
+           Pointer · Options · 硝子
 
-        /* Dark Mode - 深色纸质感 */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary-color: #b8936d;
-                --primary-hover: #a07d5a;
-                --primary-light: #3d362e;
-                --success-color: #8a9b76;
-                --success-hover: #9fad8a;
-                --success-light: #2d3229;
-                --error-color: #b87c6f;
-                --error-light: #3b2f2d;
-                --error-hover: #c98c7e;
-                --border-color: #3d3530;
-                --border-focus: #5a4d43;
-                --background: #2a2420;
-                --background-secondary: #322c26;
-                --surface: #352f28;
-                --text-primary: #e8dccf;
-                --text-secondary: #c9bdb0;
-                --text-muted: #9a8d7e;
-                --text-disabled: #6b6158;
-                --secondary-bg: #352f28;
-                --secondary-hover-bg: #3d362e;
-                --secondary-border: #4a4037;
-            }
-        }
+           No palette lives here. Scene, ink, glass, elevation, motion,
+           radii and type all come from theme.css, which the FAB ball and the
+           popup read from too. This file only says how the options page's own
+           parts are cut from that material.
+
+           Numbers (with sources):
+             · Sidebar width 240px        — Apple HIG sidebars 225–275pt band
+             · Panel radius --r-panel 14  — matches the popup's field stack
+             · Input 36 / --r-field / 0   — Vercel Geist h-9, borderless glass
+             · Body label 13px / -0.01em  — Linear --text-mini
+             · Hint 12px                  — Linear --text-micro
+             · Button 32 / --r-ctl / 500  — Linear --button-height + Geist font-medium
+           ═══════════════════════════════════════════════════════════════════════ */
+
+
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             margin: 0;
+            padding: 56px 32px 96px;
+            font-size: 14px;
+            line-height: 1.55;
             min-height: 100vh;
-            color: var(--text-primary);
-            background: var(--background);
-            line-height: 1.65;
-            font-size: 15px;
-            font-weight: 400;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
         }
 
-        .header {
-            width: 100%;
-            padding: 32px 24px 28px;
-            box-sizing: border-box;
-            background: var(--surface);
-            border-bottom: 2px dashed var(--border-color);
-        }
-
-        .header-inner {
-            max-width: 1200px;
+        .wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin: 0 0 10px;
-            letter-spacing: -0.01em;
-            line-height: 1.3;
+        /* ═══════ Header ═══════ */
+        .head { margin-bottom: 48px; }
+        .head h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            font-weight: 620;
+            letter-spacing: -0.02em;
+            color: var(--ink-1);
+            line-height: 1.15;
         }
-
-        .subtitle {
+        .head .sub {
             margin: 0;
-            color: var(--text-secondary);
-            font-size: 15px;
-            font-weight: 400;
-            line-height: 1.6;
+            font-size: 13px;
+            color: var(--ink-3);
+            letter-spacing: -0.005em;
+            line-height: 1.5;
         }
 
-        .container {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 28px 24px 56px;
-        }
-
-        .container-inner {
-            max-width: 1200px;
-            margin: 0 auto;
+        /* ═══════ Grid — 240px sidebar + content ═══════ */
+        .options {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 32px;
+            grid-template-columns: 240px 1fr;
+            gap: 56px;
             align-items: start;
         }
-
-        .form-group {
-            margin-bottom: 28px;
-            position: relative;
-        }
-
-        .form-group::after {
-            content: '';
-            position: absolute;
-            bottom: -14px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background-image: linear-gradient(to right, var(--border-color) 40%, transparent 40%);
-            background-size: 8px 1px;
-            background-repeat: repeat-x;
-            opacity: 0.5;
-        }
-
-        .form-group:last-child::after {
-            display: none;
-        }
-
-        label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 10px;
-            color: var(--text-primary);
-            font-size: 14px;
-            line-height: 1.5;
-            letter-spacing: 0.005em;
-        }
-
-        input[type="text"],
-        input[type="password"],
-        select {
-            width: 100%;
-            padding: 12px 14px;
-            border: 2px solid var(--border-color);
-            border-radius: var(--border-radius-sm);
-            font-size: 15px;
-            font-family: inherit;
-            background-color: var(--surface);
-            color: var(--text-primary);
-            transition: var(--transition);
-            box-sizing: border-box;
-        }
-
-        input[type="text"]:hover,
-        input[type="password"]:hover,
-        select:hover {
-            border-color: var(--border-focus);
-            border-style: solid;
-        }
-
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        select:focus {
-            border-color: var(--primary-color);
-            border-style: solid;
-            outline: none;
-        }
-
-        input[type="text"]::placeholder,
-        input[type="password"]::placeholder {
-            color: var(--text-muted);
-        }
-
-        .hint {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 8px;
-            line-height: 1.65;
-        }
-
-        .status {
-            padding: 14px 16px;
-            margin-top: 18px;
-            border-radius: var(--border-radius-sm);
-            font-size: 14px;
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-            font-weight: 400;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-4px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .success {
-            background-color: var(--success-light);
-            color: var(--success-color);
-            border: 2px solid var(--success-color);
-        }
-
-        .error {
-            background-color: var(--error-light);
-            color: var(--error-color);
-            border: 2px solid var(--error-color);
-        }
-
-        button {
-            background-color: var(--primary-color);
-            color: var(--surface);
-            border: 2px solid var(--primary-color);
-            border-radius: var(--border-radius-sm);
-            padding: 13px 26px;
-            font-size: 15px;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            letter-spacing: 0.01em;
-        }
-
-        button:hover:not(:disabled) {
-            background-color: var(--primary-hover);
-            border-color: var(--primary-hover);
-        }
-
-        button:active:not(:disabled) {
-            opacity: 0.85;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        button:focus-visible {
-            outline: 2px dashed var(--primary-color);
-            outline-offset: 3px;
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 500;
-            margin: 0;
-            color: var(--text-primary);
-            letter-spacing: -0.005em;
-            position: relative;
-            padding-bottom: 14px;
-        }
-
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 60px;
-            height: 2px;
-            background-color: var(--primary-color);
-        }
-
-        .api-section,
-        .model-section,
-        .basic-settings {
-            padding: 32px;
-            border-radius: var(--border-radius);
-            background-color: var(--surface);
-            border: 2px solid var(--border-color);
-            transition: var(--transition);
-            position: relative;
-            box-shadow: 0 1px 2px rgba(74, 63, 53, 0.04);
-        }
-
-        .api-section:hover,
-        .model-section:hover,
-        .basic-settings:hover {
-            box-shadow: 0 4px 12px rgba(74, 63, 53, 0.08), 0 2px 4px rgba(74, 63, 53, 0.06);
-            transform: translateY(-1px);
-        }
-
-        @media (prefers-color-scheme: dark) {
-
-            .api-section,
-            .model-section,
-            .basic-settings {
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-            }
-
-            .api-section:hover,
-            .model-section:hover,
-            .basic-settings:hover {
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.25);
-            }
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            margin-left: 12px;
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--background-secondary);
-            border-top-color: var(--surface);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .verify-button {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
-        }
-
-        .verify-button:hover:not(:disabled) {
-            background-color: var(--success-hover);
-            border-color: var(--success-hover);
-        }
-
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .slider-container input[type="range"] {
-            flex: 1;
-            height: 4px;
-            background: var(--border-color);
-            outline: none;
-            border-radius: 2px;
-            appearance: none;
-            transition: var(--transition);
-        }
-
-        .slider-container input[type="range"]:hover {
-            background: var(--border-focus);
-        }
-
-        .slider-container input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: var(--primary-color);
-            border-radius: 2px;
-            cursor: pointer;
-            transition: var(--transition);
-            border: 2px solid var(--surface);
-        }
-
-        .slider-container input[type="range"]::-webkit-slider-thumb:hover {
-            background: var(--primary-hover);
-        }
-
-        .slider-container span {
-            min-width: 52px;
-            text-align: center;
-            font-weight: 500;
-            color: var(--text-primary);
-            background-color: var(--background-secondary);
-            padding: 6px 12px;
-            border-radius: var(--border-radius-sm);
-            border: 2px solid var(--border-color);
-            font-size: 13px;
-        }
-
-        .section-header {
-            margin-bottom: 28px;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-weight: 400;
-            color: var(--text-primary);
-        }
-
-        input[type="checkbox"] {
-            width: 17px;
-            height: 17px;
-            margin-right: 10px;
-            accent-color: var(--primary-color);
-            cursor: pointer;
-            border-radius: 2px;
-            border: 2px solid var(--border-color);
-        }
-
-        .model-search-container {
-            position: relative;
-        }
-
-        #modelSearch {
-            cursor: pointer;
-            background-color: var(--surface);
-        }
-
-        #modelSearch:focus {
-            cursor: text;
-        }
-
-        .model-dropdown {
-            position: absolute;
-            top: calc(100% + 2px);
-            left: 0;
-            right: 0;
-            background-color: var(--surface);
-            border: 2px solid var(--border-color);
-            border-radius: var(--border-radius-sm);
-            max-height: 240px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        }
-
-        .model-section {
-            z-index: 10;
-        }
-
-        .model-dropdown.show {
-            display: block;
-        }
-
-        .model-item {
-            padding: 11px 14px;
-            cursor: pointer;
-            transition: var(--transition);
-            border-bottom: 1px dashed var(--border-color);
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .model-item:last-child {
-            border-bottom: none;
-        }
-
-        .model-item:hover {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-        }
-
-        .model-item.selected {
-            background-color: var(--primary-color);
-            color: var(--surface);
-            font-weight: 500;
-        }
-
-        .model-item.highlighted {
-            background-color: var(--background-secondary);
-        }
-
-        .no-models {
-            padding: 12px 16px;
-            color: var(--text-muted);
-            font-style: italic;
-            text-align: center;
-        }
-
-        /* Custom select styling for Interface Settings */
-        .custom-select-container {
-            position: relative;
-        }
-
-        .custom-select-container input[type="text"] {
-            cursor: pointer;
-            background-color: var(--surface);
-        }
-
-        .custom-select-container input[type="text"]:focus {
-            cursor: pointer;
-        }
-
-        .custom-dropdown {
-            position: absolute;
-            top: calc(100% + 2px);
-            left: 0;
-            right: 0;
-            background-color: var(--surface);
-            border: 2px solid var(--border-color);
-            border-radius: var(--border-radius-sm);
-            max-height: 240px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-        }
-
-        .custom-dropdown.show {
-            display: block;
-        }
-
-        .custom-item {
-            padding: 11px 14px;
-            cursor: pointer;
-            transition: var(--transition);
-            border-bottom: 1px dashed var(--border-color);
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .custom-item:last-child {
-            border-bottom: none;
-        }
-
-        .custom-item:hover {
-            background-color: var(--primary-light);
-            color: var(--primary-color);
-        }
-
-        .custom-item.selected {
-            background-color: var(--primary-color);
-            color: var(--surface);
-            font-weight: 500;
-        }
-
-        .custom-item.highlighted {
-            background-color: var(--background-secondary);
-        }
-
-        /* Status messages aligned with JS helpers */
-        .status-message {
-            padding: 14px 16px;
-            margin-top: 18px;
-            border-radius: var(--border-radius-sm);
-            font-size: 14px;
-            font-weight: 400;
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .status-success {
-            background-color: var(--success-light);
-            color: var(--success-color);
-            border: 2px solid var(--success-color);
-        }
-
-        .status-error {
-            background-color: var(--error-light);
-            color: var(--error-color);
-            border: 2px solid var(--error-color);
-        }
-
-        /* Visibility helpers used by options.js */
-        .hidden {
-            display: none !important;
-        }
-
-        .visible {
-            display: block;
-        }
-
-        /* Layout: Sidebar + Content (Scheme A) */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        .layout {
-            display: flex;
-            gap: 28px;
-            align-items: flex-start;
+        @media (max-width: 860px) {
+            .options { grid-template-columns: 1fr; gap: 32px; }
+            .sidebar { position: static !important; top: auto !important; }
         }
 
+        /* ═══════ Sidebar — glass sheet, same recipe as the FAB ═══════ */
         .sidebar {
             position: sticky;
-            top: 28px;
-            width: 180px;
-            background: transparent;
-            padding: 0;
-            border-left: 1px solid var(--border-color);
+            top: 32px;
+            padding: 22px 12px 14px;
+            border-radius: var(--r-panel);
+            overflow: hidden;
+            background: var(--glass-panel);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: var(--sh-panel);
+        }
+        /* Raking sheen across the sheet — the same edge-catch the FAB gets
+           from its 1px top specular, stretched over a large pane. Mixed from
+           --glass-spec-a so it thins with the frost in dark mode. */
+        .sidebar::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg,
+                hsla(0, 0%, 100%, calc(var(--glass-spec-a) * 0.5)) 0%,
+                hsla(0, 0%, 100%, calc(var(--glass-spec-a) * 0.09)) 32%,
+                transparent 55%);
+            pointer-events: none;
+            border-radius: inherit;
         }
 
         .sidebar-title {
-            font-size: 11px;
-            color: var(--text-muted);
-            letter-spacing: .08em;
+            position: relative;
+            z-index: 1;
             margin: 0 0 12px;
+            padding: 0 10px;
+            font-family: var(--font-mono);
+            font-size: 10px;
             font-weight: 500;
-            padding-left: 16px;
+            color: var(--ink-3);
             text-transform: uppercase;
+            letter-spacing: 0.12em;
         }
-
         .nav-list {
+            position: relative;
+            z-index: 1;
             list-style: none;
             padding: 0;
             margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 0;
+            gap: 1px;
         }
-
         .nav-link {
             display: block;
-            padding: 11px 16px;
-            color: var(--text-secondary);
+            padding: 8px 10px;
+            font-size: 13px;
+            letter-spacing: -0.01em;
+            color: var(--ink-2);
             text-decoration: none;
-            transition: var(--transition);
-            font-size: 14px;
-            border-left: 3px solid transparent;
-            margin-left: -1px;
-            position: relative;
+            border-radius: var(--r-ctl);
+            transition: color var(--t-color), background var(--t-color);
         }
-
-        .nav-link::before {
-            content: '';
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 4px;
-            background: var(--text-muted);
-            border-radius: 50%;
-            opacity: 0;
-            transition: var(--transition);
-        }
-
+        /* hover = a breath of sumi wash; current = 濃墨, one rung deeper, the same
+           "you are here / this is live" mark the FAB and the toggles make.
+           A grey filled block would read as a fourth material. */
         .nav-link:hover {
-            color: var(--text-primary);
-            border-left-color: var(--border-focus);
-            background: var(--background-secondary);
+            color: var(--ink-1);
+            background: rgba(var(--ink-rgb), 0.05);
         }
-
-        .nav-link:hover::before {
-            opacity: 0.6;
-        }
-
         .nav-link.active {
-            color: var(--primary-color);
-            border-left-color: var(--primary-color);
-            background: var(--primary-light);
+            color: var(--accent-hover);
+            background: var(--accent-soft);
+            box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.22);
             font-weight: 500;
         }
-
-        .nav-link.active::before {
-            background: var(--primary-color);
-            opacity: 1;
+        .nav-link:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
         }
 
-        .content {
+        /* ═══════ Content — sections sit on glass panels ═══════ */
+        .content-flat {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            padding-top: 2px;
+        }
+        .section { margin-bottom: 56px; }
+        .section:last-child { margin-bottom: 0; }
+
+        .section > .s-head {
+            margin-bottom: 14px;
+            padding: 0 2px;
+        }
+        .section > .s-head > h2 {
+            margin: 0;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--ink-3);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .section > .s-head > p {
+            margin: 8px 0 0;
+            font-size: 12.5px;
+            color: var(--ink-3);
+            line-height: 1.6;
+            max-width: 62ch;
+        }
+
+        /* .rows — one frosted sheet per section. No overflow:hidden so the
+           dropdown lenses inside a row can escape the panel; first/last rows
+           carry no hairline, so nothing clashes with the rounded corners. */
+        .rows {
+            background: var(--glass-panel);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-radius: var(--r-panel);
+            box-shadow: var(--sh-panel);
+        }
+        .r {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 13px 18px;
+        }
+        /* A row hides itself with .hidden = true; .r's own display: flex would
+           otherwise outrank the UA sheet's [hidden] rule and leave an empty
+           strip behind. */
+        .r[hidden] { display: none; }
+        /* The hairline belongs to the row BELOW it, so a hidden row draws
+           nothing and the last visible row ends bare — no :last-child rule to
+           get stranded on a row that is not really there. */
+        .r + .r { border-top: 1px solid var(--glass-line); }
+        /* Label takes the slack, control keeps the fixed column. The control can
+           still shrink on a narrow window; the label stops at 140px first so
+           short hints do not wrap while the row still has unused space. */
+        .r-label {
+            /* basis 0, not auto: with an auto basis each label shrinks in
+               proportion to its own text length, so every row's control
+               landed on a different left edge. At 0 the label is pure slack
+               and the control column is identical on every row. */
+            flex: 1 1 0;
+            min-width: 140px;
+            font-size: 13px;
+            color: var(--ink-2);
+            font-weight: 400;
+            line-height: 1.4;
+            letter-spacing: -0.005em;
+        }
+        .r-label .hint {
+            display: block;
+            margin-top: 3px;
+            font-size: 11.5px;
+            color: var(--ink-4);
+            font-weight: 400;
+            line-height: 1.5;
+        }
+        .r-control {
+            flex: 0 1 320px;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            position: relative;
+        }
+        /* Two loose controls instead of one 320px block: spread them to the
+           column's own edges so the key cap starts where every select and
+           slider starts, and the toggle ends where they end. Right-aligning
+           the pair left the cap floating in the middle of the row, lined up
+           with nothing. Same shape as .mslider-row: control left, state right. */
+        .r-control.spread { justify-content: space-between; }
+
+        /* ═══════ Field — glass chip on the panel, matches popup .field ═══════
+           NOTE: no backdrop-filter here — the .rows panel already frosts the
+           scene, and a nested filter double-counts the backdrop in Chrome
+           (visibly brightens the chip in dark mode). The chip is a thin glass
+           tint + rim riding on the panel's frost. Only elements sitting
+           directly on the body scene get their own blur. */
+        .mf {
+            width: 100%;
+            max-width: 320px;
+            height: 36px;
+            padding: 0 14px;
+            font: inherit;
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--ink-1);
+            background: var(--glass-chip);
+            border: none;
+            border-radius: var(--r-field);
+            outline: none;
+            box-shadow: var(--sh-chip);
+            transition: background var(--t-color), box-shadow var(--t-color);
+            box-sizing: border-box;
+        }
+        .mf::placeholder { color: var(--ink-4); }
+        .mf:hover {
+            background: var(--glass-chip-hover);
+            box-shadow: var(--sh-chip-hover);
+        }
+        .mf:focus, .mf:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .mf.mono {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.02em;
+        }
+
+        .mf.select {
+            cursor: pointer;
+            padding-right: 38px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238e8b82' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        /* Dropdown open — swap ring to accent so the chip signals "active"
+           without fighting the hover state. background-color only, so the
+           chevron keeps riding on the glass. */
+        .mf.select.active,
+        .mf.select.active:hover {
+            background-color: var(--glass-chip);
+            box-shadow: 0 0 0 1px var(--accent), var(--sh-ink-1);
+        }
+        @media (prefers-color-scheme: dark) {
+            .mf.select {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239e9a94' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            }
+        }
+
+        /* Custom select wrappers — must be position: relative for absolute dropdown */
+        .model-search-container,
+        .custom-select-container,
+        .url-preset-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        /* Keep a dropdown above everything painted after it. Two hops are
+           needed because .rows has a backdrop-filter, which makes it a
+           stacking context: the lens's z-index: 20 is sealed inside the panel,
+           so the panel itself has to win the comparison against whatever comes
+           next. Within a section that rival is .s-action — its .mbtn buttons
+           carry their own backdrop-filter, so they too are stacking contexts
+           at layer 0 and can paint over an open lens. Across sections it is the
+           next section's panel. Hence
+           .rows lifts to 1 inside its section, and the sections themselves
+           descend in DOM order. */
+        .rows { position: relative; z-index: 1; }
+        #apiSection       { position: relative; z-index: 11; }
+        #modelSection     { position: relative; z-index: 10; }
+        #interfaceSection { position: relative; z-index: 9; }
+
+        /* ═══════ Base URL — input with trailing preset trigger ═══════
+           Same stone chip, but reserves room for a chevron button that opens
+           a lens of common provider endpoints. Custom URLs stay editable. */
+        .url-preset-wrap #baseUrl {
+            padding-right: 40px;
+        }
+        .url-preset-trigger {
+            position: absolute;
+            top: 50%;
+            right: 4px;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            border-radius: var(--r-ctl);
+            color: var(--ink-3);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--t-color), color var(--t-color);
+        }
+        .url-preset-trigger:hover {
+            color: var(--ink-1);
+            background: rgba(var(--ink-rgb), 0.06);
+        }
+        .url-preset-trigger:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .url-preset-trigger svg {
+            width: 12px;
+            height: 12px;
+            transition: transform var(--t-release);
+        }
+        .url-preset-wrap.open .url-preset-trigger {
+            color: var(--accent);
+        }
+        .url-preset-wrap.open .url-preset-trigger svg {
+            transform: rotate(180deg);
+        }
+        .url-preset-wrap.open #baseUrl {
+            box-shadow: 0 0 0 1px var(--accent), var(--sh-ink-1);
+        }
+
+        /* Preset items — two-line rows: provider name + mono URL hint. */
+        .preset-item {
+            padding: 8px 12px;
+            border-radius: var(--r-ctl);
+            cursor: pointer;
+            transition: background var(--t-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .preset-text {
             flex: 1;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 28px;
+            gap: 1px;
+        }
+        .preset-name {
+            font-size: 13px;
+            color: var(--ink-1);
+            letter-spacing: -0.005em;
+            line-height: 1.3;
+            transition: color var(--t-color);
+        }
+        .preset-url {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            color: var(--ink-4);
+            letter-spacing: 0.01em;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .preset-check {
+            flex-shrink: 0;
+            width: 14px;
+            height: 14px;
+            color: var(--accent);
+            opacity: 0;
+            transition: opacity var(--t-color);
+        }
+        .preset-item:hover {
+            background: var(--accent-soft);
+        }
+        .preset-item:hover .preset-name {
+            color: var(--accent-hover);
+        }
+        .preset-item.matched .preset-name {
+            color: var(--accent-hover);
+            font-weight: 500;
+        }
+        .preset-item.matched .preset-check {
+            opacity: 1;
+        }
+
+        /* Provider list is short and curated — give it more vertical room
+           than the model dropdown (which may hold hundreds of items) so the
+           whole list fits without scrolling on normal viewports. */
+        #baseUrlPresetDropdown {
+            max-height: 360px;
+        }
+
+        /* ═══════ Dropdown — glass lens, same float recipe as popup .lens ═══════ */
+        .model-dropdown,
+        .custom-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            padding: 5px;
+            z-index: 20;
+            border-radius: var(--r-field);
+            background: var(--glass-float);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: var(--sh-float);
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+            animation: lens-in 0.22s var(--spring);
+        }
+        .model-dropdown.show,
+        .custom-dropdown.show { display: block; }
+        @keyframes lens-in {
+            0%   { opacity: 0; transform: translateY(-4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .model-item,
+        .custom-item {
+            padding: 9px 12px;
+            border-radius: var(--r-ctl);
+            font-size: 13px;
+            color: var(--ink-1);
+            cursor: pointer;
+            transition: background var(--t-color), color var(--t-color);
+        }
+        .model-item:hover,
+        .custom-item:hover {
+            background: var(--accent-soft);
+            color: var(--accent-hover);
+        }
+        .model-item.selected,
+        .custom-item.selected {
+            color: var(--accent-hover);
+            font-weight: 500;
+        }
+        .model-item.highlighted,
+        .custom-item.highlighted {
+            background: rgba(var(--ink-rgb), 0.06);
+        }
+        .model-item.no-models,
+        .no-models {
+            color: var(--ink-4);
+            font-style: italic;
+            text-align: center;
+            cursor: default;
+        }
+        .model-item.no-models:hover,
+        .no-models:hover {
+            background: transparent;
+            color: var(--ink-4);
+        }
+
+        /* ═══════ Slider — 4px 濃墨 track, 16px pearl thumb ═══════
+           已填的那一段是"这个值现在是多少"，和开关打开、球激活是同一句话，
+           所以用同一支墨。它按 --accent-rim 的 α 画，是一道 4px 的笔画，
+           不是一块实心面 —— 实心 --ink-2 会是整页最重的一块墨面，既违反
+           "墨不变成面"，也是唯一一处用灰色表达"生效中"的控件。
+           把手保持白玻璃珠：珠子是手柄，不是信号。 */
+        .mslider-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            max-width: 320px;
+        }
+        .mslider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(
+                to right,
+                var(--accent-rim) 0%,
+                var(--accent-rim) var(--p, 35%),
+                rgba(var(--ink-rgb), 0.14) var(--p, 35%),
+                rgba(var(--ink-rgb), 0.14) 100%
+            );
+            outline: none;
+            margin: 0;
+            cursor: pointer;
+        }
+        .mslider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--glass-pearl);
+            box-shadow: var(--sh-pearl);
+            cursor: pointer;
+            border: none;
+            transition: transform var(--t-release);
+        }
+        .mslider::-webkit-slider-thumb:hover  { transform: scale(1.15); }
+        .mslider::-webkit-slider-thumb:active { transform: scale(0.94); }
+        .mval {
+            min-width: 56px;
+            text-align: right;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--ink-3);
+            letter-spacing: 0.02em;
+        }
+
+        /* ═══════ Toggle — glass pearl in a frosted channel, matches popup ═══════ */
+        .mtoggle-wrap {
+            position: relative;
+            display: inline-flex;
+            cursor: pointer;
+            user-select: none;
+        }
+        .mtoggle-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+        .mtoggle {
+            position: relative;
+            width: 38px;
+            height: 22px;
+            border-radius: 999px;
+            background: var(--glass-channel);
+            box-shadow: var(--sh-channel);
+            transition: background var(--t-color), box-shadow var(--t-color);
+            display: block;
+        }
+        .mtoggle::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--glass-pearl);
+            box-shadow: var(--sh-pearl);
+            transition: transform var(--t-release), background var(--t-color);
+        }
+        /* ON — identical recipe to the popup toggle: ink wash in the
+           channel, inked pearl, 滲み bloom. */
+        .mtoggle-input:checked + .mtoggle {
+            background: var(--accent-soft);
+            box-shadow:
+                inset 0 0 0 1px var(--accent-rim),
+                inset 0 1px 3px rgba(var(--accent-rgb), 0.12),
+                0 0 8px 0 var(--accent-glow);
+        }
+        .mtoggle-input:checked + .mtoggle::after {
+            transform: translateX(16px);
+            background: var(--accent);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                0 0 0 0.5px rgba(var(--accent-rgb), 0.55),
+                0 1px 3px rgba(var(--accent-rgb), 0.35);
+        }
+        .mtoggle-input:focus-visible + .mtoggle {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* ═══════ Shortcut key cap — glass chip next to the toggle as one unit ═══════ */
+        .shortcut-pill {
+            height: 28px;
+            min-width: 48px;
+            padding: 0 10px;
+            font: inherit;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            color: var(--ink-2);
+            background: var(--glass-chip);
+            border: 1px solid transparent;
+            border-radius: var(--r-ctl);
+            box-shadow: var(--sh-chip);
+            cursor: pointer;
+            transition: background var(--t-color), box-shadow var(--t-color),
+                        color var(--t-color), opacity var(--t-color);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .shortcut-pill:hover {
+            color: var(--ink-1);
+            background: var(--glass-chip-hover);
+            box-shadow: var(--sh-chip-hover);
+        }
+        .shortcut-pill:active { background: var(--glass-channel); }
+        .shortcut-pill:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .shortcut-pill.recording {
+            color: var(--accent);
+            background: var(--accent-soft);
+            box-shadow: 0 0 0 1px var(--accent), var(--sh-ink-1);
+            animation: shortcut-listen 1.6s ease-in-out infinite;
+        }
+        .shortcut-pill.is-disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        @keyframes shortcut-listen {
+            0%, 100% { opacity: 0.8; }
+            50%      { opacity: 1; }
+        }
+        /* 快捷键说明 / 逐站例外：整行铺开，不挤在 200px 的标签列里 */
+        .r.r-stack {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding-top: 4px;
+        }
+        .shortcut-sites {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .shortcut-sites:empty { display: none; }
+        .shortcut-site {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 6px 4px 10px;
+            font-size: 11.5px;
+            font-family: var(--font-mono);
+            color: var(--ink-2);
+            background: var(--glass-chip);
+            border-radius: var(--r-ctl);
+            box-shadow: var(--sh-chip);
+        }
+        .shortcut-site-mode {
+            opacity: 0.65;
+            letter-spacing: 0.03em;
+        }
+        .shortcut-site-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            padding: 0;
+            font: inherit;
+            font-size: 13px;
+            line-height: 1;
+            color: var(--ink-2);
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background var(--t-color), color var(--t-color);
+        }
+        .shortcut-site-remove:hover {
+            color: var(--ink-1);
+            background: var(--glass-channel);
+        }
+        .shortcut-site-remove:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px;
+        }
+
+        /* ═══════ Button — inked glass ═══════
+           The primary action is the same frosted chip as everything else,
+           tinted and drawn in 濃墨 — the same move the FAB makes when it goes
+           active, and the same move the toggle makes when it turns on.
+           Hierarchy comes from the tint and the rim, not from a different
+           material: an opaque saturated fill with white type is the one thing
+           the signal ink is not allowed to be. */
+        .mbtn {
+            height: 32px;
+            padding: 0 16px;
+            font: inherit;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-hover);
+            background: var(--accent-tint);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: none;
+            border-radius: var(--r-ctl);
+            box-shadow:
+                inset 0 0 0 1px var(--accent-rim),
+                inset 0 1px 0 hsla(0, 0%, 100%, calc(var(--glass-spec-a) * 0.6)),
+                0 1px 2px rgba(var(--accent-rgb), 0.12),
+                0 6px 16px rgba(var(--accent-rgb), 0.1);
+            cursor: pointer;
+            transition: background var(--t-color), box-shadow var(--t-color),
+                        color var(--t-color), transform var(--t-press);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.005em;
+        }
+        .mbtn:hover {
+            color: var(--accent-hover);
+            background: rgba(var(--accent-rgb), 0.2);
+            box-shadow:
+                inset 0 0 0 1px rgba(var(--accent-rgb), 0.6),
+                inset 0 1px 0 hsla(0, 0%, 100%, calc(var(--glass-spec-a) * 0.7)),
+                0 1px 2px rgba(var(--accent-rgb), 0.14),
+                0 10px 24px var(--accent-glow);
+        }
+        /* Pressed = the FAB's :active — the glass goes into the paper. */
+        .mbtn:active {
+            transform: scale(0.985);
+            box-shadow:
+                inset 0 0 0 1px var(--accent-rim),
+                0 0 2px rgba(var(--accent-rgb), 0.2);
+        }
+        .mbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .mbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Secondary — plain glass, no ink. */
+        .mbtn.secondary {
+            color: var(--ink-2);
+            background: var(--glass-chip);
+            box-shadow: var(--sh-chip);
+        }
+        .mbtn.secondary:hover {
+            color: var(--ink-1);
+            background: var(--glass-chip-hover);
+            box-shadow: var(--sh-chip-hover);
+        }
+        .mbtn.secondary:active {
+            background: var(--glass-channel);
+            box-shadow: var(--sh-channel);
+        }
+
+        .s-action {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Loading spinner used inline by options.js when verifying */
+        .loading-spinner {
+            display: inline-block;
+            margin-left: 10px;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(var(--accent-rgb), 0.28);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ═══════ Status messages — quiet colored text, no card ═══════ */
+        .status-message {
+            margin-top: 14px;
+            padding-left: 2px;
+            font-size: 12.5px;
+            font-weight: 400;
+            line-height: 1.5;
+            display: none;
+            animation: fade-in 0.22s var(--spring);
+        }
+        .status-message.visible { display: block; }
+        .status-success { color: var(--ink-2); }
+        .status-success::before {
+            content: "✓  ";
+            color: var(--ink-3);
+            font-weight: 500;
+        }
+        /* The one mark in the whole extension that is not ink. Depth alone
+           cannot say "this failed" — deeper ink only reads as more emphasis —
+           so errors keep 朱, the correction brush on a sumi manuscript. */
+        .status-error { color: var(--alert); }
+        .status-error::before {
+            content: "✗  ";
+            font-weight: 500;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(-2px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════ Utilities ═══════ */
+        .hidden  { display: none !important; }
+        .visible { display: block; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 
-<body>
-    <header class="header">
-        <div class="header-inner">
+<body class="pointer-scene">
+
+    <main class="wrap">
+
+        <header class="head">
             <h1 data-i18n="title">Pointer Settings</h1>
-            <p class="subtitle" data-i18n="subtitle">Configure your AI-powered translation extension</p>
-        </div>
-    </header>
+            <p class="sub" data-i18n="subtitle">Configure your AI-powered translation extension</p>
+        </header>
 
-    <main class="container">
-        <div class="container-inner">
-            <div class="layout">
-                <nav class="sidebar" aria-label="Section navigation">
-                    <p class="sidebar-title" data-i18n="navTitle">Settings</p>
-                    <ul class="nav-list">
-                        <li><a class="nav-link" href="#apiSection" data-nav="api" data-i18n="navApi">API</a></li>
-                        <li><a id="navModelLink" class="nav-link hidden" href="#modelSection" data-nav="model"
-                                data-i18n="navModel">Model</a></li>
-                        <li><a class="nav-link" href="#interfaceSection" data-nav="interface"
-                                data-i18n="navInterface">Interface</a></li>
-                    </ul>
-                </nav>
-                <div class="content">
+        <div class="options">
 
-                    <div class="api-section" id="apiSection">
-                        <div class="section-header">
-                            <h2 class="section-title" data-i18n="apiConfig">API Configuration</h2>
-                        </div>
+            <nav class="sidebar" aria-label="Section navigation">
+                <p class="sidebar-title" data-i18n="navTitle">Settings</p>
+                <ul class="nav-list">
+                    <li><a class="nav-link" href="#apiSection" data-nav="api" data-i18n="navApi">API</a></li>
+                    <li><a id="navModelLink" class="nav-link hidden" href="#modelSection" data-nav="model"
+                            data-i18n="navModel">Model</a></li>
+                    <li><a class="nav-link" href="#interfaceSection" data-nav="interface"
+                            data-i18n="navInterface">Interface</a></li>
+                </ul>
+            </nav>
 
-                        <div class="form-group">
-                            <label for="apiKey" data-i18n="labelApiKey">API Key:</label>
-                            <input type="password" id="apiKey" placeholder="Enter your API key">
-                            <div class="hint" data-i18n="hintApiKey">Your API key will be stored securely in your
-                                browser.</div>
-                        </div>
+            <div class="content-flat">
 
-                        <div class="form-group">
-                            <label for="baseUrl" data-i18n="labelBaseUrl">API Base URL:</label>
-                            <input type="text" id="baseUrl" placeholder="Enter API base URL">
-                            <div class="hint" data-i18n="hintBaseUrl">For OpenAI: https://api.openai.com/v1</div>
-                        </div>
-
-                        <button id="verifyButton" class="verify-button" data-i18n="buttonVerify">Verify API & Load
-                            Models</button>
-                        <div id="verifyStatus" class="status-message"></div>
+                <!-- ═══════ API ═══════ -->
+                <section class="section" id="apiSection">
+                    <div class="s-head">
+                        <h2 data-i18n="apiConfig">API Configuration</h2>
+                        <p data-i18n="hintApiKey">Stored on this device only; optional for local/LAN servers</p>
                     </div>
-
-                    <div class="model-section hidden" id="modelSection">
-                        <div class="section-header">
-                            <h2 class="section-title" data-i18n="modelConfig">AI Model Configuration</h2>
+                    <div class="rows">
+                        <div class="r">
+                            <div class="r-label" data-i18n="labelApiKey">API Key</div>
+                            <div class="r-control">
+                                <input type="password" id="apiKey" class="mf mono" placeholder="sk-...">
+                            </div>
                         </div>
-
-                        <div class="form-group model-option">
-                            <label for="model" data-i18n="labelModel">Select AI Model:</label>
-                            <div class="model-search-container">
-                                <input type="text" id="modelSearch" placeholder="Type to search models..." readonly>
-                                <div class="model-dropdown" id="modelDropdown">
-                                    <div class="model-item">Loading models...</div>
+                        <div class="r">
+                            <div class="r-label">
+                                <span data-i18n="labelBaseUrl">API Base URL</span>
+                                <span class="hint" data-i18n="hintBaseUrl">OpenAI: https://api.openai.com/v1</span>
+                            </div>
+                            <div class="r-control">
+                                <div class="url-preset-wrap" id="baseUrlWrap">
+                                    <input type="text" id="baseUrl" class="mf mono" placeholder="https://api.openai.com/v1">
+                                    <button type="button" id="baseUrlPresetBtn" class="url-preset-trigger"
+                                        aria-label="Common providers" aria-haspopup="listbox" aria-expanded="false">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                    <div class="custom-dropdown" id="baseUrlPresetDropdown" role="listbox"></div>
                                 </div>
                             </div>
-                            <input type="hidden" id="model" value="">
-                            <div class="hint" data-i18n="hintModel">Type to search and select the AI model to use for
-                                translation</div>
                         </div>
-
-                        <button id="saveApiButton" data-i18n="buttonSaveApi">Save AI Model</button>
-                        <div id="apiStatusMessage" class="status-message"></div>
                     </div>
+                    <div class="s-action">
+                        <button id="clearCredentialsButton" class="mbtn secondary"
+                            data-i18n="buttonClearCredentials">Clear Credentials</button>
+                        <button id="verifyButton" class="mbtn" data-i18n="buttonVerify">Verify API &amp; Load Models</button>
+                    </div>
+                    <div id="verifyStatus" class="status-message"></div>
+                </section>
 
-                    <div class="basic-settings" id="interfaceSection">
-                        <div class="section-header">
-                            <h2 class="section-title" data-i18n="interfaceSettings">Interface Settings</h2>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="uiLang" data-i18n="labelUiLang">Interface Language:</label>
-                            <div class="custom-select-container">
-                                <input type="text" id="uiLangSearch" placeholder="Select language..." readonly>
-                                <div class="custom-dropdown" id="uiLangDropdown">
-                                    <!-- Language options will be generated dynamically by JavaScript -->
-                                </div>
+                <!-- ═══════ Model ═══════ -->
+                <section class="section hidden" id="modelSection">
+                    <div class="s-head">
+                        <h2 data-i18n="modelConfig">AI Model Configuration</h2>
+                    </div>
+                    <div class="rows">
+                        <div class="r">
+                            <div class="r-label">
+                                <span data-i18n="labelModel">Translation model</span>
+                                <span class="hint" data-i18n="hintModel">Type to search models</span>
                             </div>
-                            <input type="hidden" id="uiLang" value="en">
-                            <div class="hint" data-i18n="hintUiLang">Set the display language of the interface</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="buttonPosition" data-i18n="labelButtonPosition">Initial Button Position:</label>
-                            <div class="custom-select-container">
-                                <input type="text" id="buttonPositionSearch" placeholder="Select position..." readonly>
-                                <div class="custom-dropdown" id="buttonPositionDropdown">
-                                    <div class="custom-item" data-value="bottom-right" data-i18n="optionPosBottomRight">
-                                        Bottom Right</div>
-                                    <div class="custom-item" data-value="bottom-left" data-i18n="optionPosBottomLeft">
-                                        Bottom Left</div>
-                                    <div class="custom-item" data-value="top-right" data-i18n="optionPosTopRight">Top
-                                        Right</div>
-                                    <div class="custom-item" data-value="top-left" data-i18n="optionPosTopLeft">Top Left
+                            <div class="r-control">
+                                <div class="model-search-container">
+                                    <input type="text" id="modelSearch" class="mf select"
+                                        placeholder="Type to search models..." readonly>
+                                    <div class="model-dropdown" id="modelDropdown">
+                                        <div class="model-item no-models">Loading models...</div>
                                     </div>
-                                    <div class="custom-item" data-value="custom" data-i18n="optionPosCustom">Custom
-                                        Position</div>
+                                </div>
+                                <input type="hidden" id="model" value="">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ═══════ Interface ═══════ -->
+                <section class="section" id="interfaceSection">
+                    <div class="s-head">
+                        <h2 data-i18n="interfaceSettings">Interface</h2>
+                    </div>
+                    <div class="rows">
+                        <div class="r">
+                            <div class="r-label" data-i18n="labelUiLang">Interface Language</div>
+                            <div class="r-control">
+                                <div class="custom-select-container">
+                                    <input type="text" id="uiLangSearch" class="mf select"
+                                        placeholder="Select language..." readonly>
+                                    <div class="custom-dropdown" id="uiLangDropdown">
+                                        <!-- populated by options.js -->
+                                    </div>
+                                </div>
+                                <input type="hidden" id="uiLang" value="en">
+                            </div>
+                        </div>
+
+                        <div class="r">
+                            <div class="r-label">
+                                <span data-i18n="labelButtonPosition">Button Position</span>
+                                <span class="hint" data-i18n="hintButtonPosition">Or drag the button on any page</span>
+                            </div>
+                            <div class="r-control">
+                                <div class="custom-select-container">
+                                    <input type="text" id="buttonPositionSearch" class="mf select"
+                                        placeholder="Select position..." readonly>
+                                    <div class="custom-dropdown" id="buttonPositionDropdown">
+                                        <div class="custom-item" data-value="bottom-right"
+                                            data-i18n="optionPosBottomRight">Bottom Right</div>
+                                        <div class="custom-item" data-value="bottom-left"
+                                            data-i18n="optionPosBottomLeft">Bottom Left</div>
+                                        <div class="custom-item" data-value="top-right" data-i18n="optionPosTopRight">
+                                            Top Right</div>
+                                        <div class="custom-item" data-value="top-left" data-i18n="optionPosTopLeft">Top
+                                            Left</div>
+                                        <div class="custom-item" data-value="custom" data-i18n="optionPosCustom">Custom
+                                            Position</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="buttonPosition" value="bottom-right">
+                            </div>
+                        </div>
+
+                        <div class="r">
+                            <div class="r-label" data-i18n="labelButtonSize">Button Size</div>
+                            <div class="r-control">
+                                <div class="mslider-row">
+                                    <input type="range" id="buttonSize" class="mslider" min="32" max="128" step="4"
+                                        value="64">
+                                    <span id="buttonSizeValue" class="mval">64px</span>
                                 </div>
                             </div>
-                            <input type="hidden" id="buttonPosition" value="bottom-right">
-                            <div class="hint" data-i18n="hintButtonPosition">You can also drag the button on any webpage
-                                to set a
-                                custom position</div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="buttonSize" data-i18n="labelButtonSize">Button Size:</label>
-                            <div class="slider-container">
-                                <input type="range" id="buttonSize" min="32" max="128" step="4" value="64">
-                                <span id="buttonSizeValue">64px</span>
+                        <div class="r">
+                            <div class="r-label">
+                                <span data-i18n="labelButtonThickness">Glass Thickness</span>
+                                <span class="hint" data-i18n="hintButtonThickness">Higher = more opaque, heavier shadow</span>
                             </div>
-                            <div class="hint" data-i18n="hintButtonSize">Adjust the size of the translation button</div>
+                            <div class="r-control">
+                                <div class="mslider-row">
+                                    <input type="range" id="buttonThickness" class="mslider" min="0" max="100" step="5"
+                                        value="0">
+                                    <span id="buttonThicknessValue" class="mval">0%</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="autoSave">
-                                <span data-i18n="labelAutoSave">Auto-save settings</span>
-                            </label>
-                            <div class="hint" data-i18n="hintAutoSave">Automatically save interface settings when you
-                                make changes</div>
+                        <div class="r">
+                            <div class="r-label">
+                                <span data-i18n="labelShortcutEnabled">Keyboard Shortcut</span>
+                                <span class="hint" data-i18n="hintShortcutEnabled">Click to rebind; hold Alt to require Alt</span>
+                            </div>
+                            <div class="r-control spread">
+                                <button type="button" id="shortcutKeyCapture" class="shortcut-pill">T</button>
+                                <label class="mtoggle-wrap">
+                                    <input type="checkbox" id="shortcutEnabled" class="mtoggle-input">
+                                    <span class="mtoggle"></span>
+                                </label>
+                            </div>
                         </div>
 
-                        <button id="saveButton" data-i18n="buttonSave">Save Interface Settings</button>
-                        <div id="statusMessage" class="status-message"></div>
+                        <div class="r r-stack" id="shortcutNotesRow" hidden>
+                            <div class="shortcut-sites" id="shortcutSiteList"></div>
+                        </div>
+
                     </div>
-                </div>
+                </section>
+
             </div>
+
         </div>
+
     </main>
 
+    <script src="settings.js"></script>
     <script src="i18n.js"></script>
     <script src="options.js"></script>
 

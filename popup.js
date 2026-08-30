@@ -1,214 +1,297 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    const Settings = globalThis.PointerSettings;
     const showButtonToggle = document.getElementById('showButton');
-    const targetLangSelect = document.getElementById('targetLang');
     const openOptionsLink = document.getElementById('openOptions');
     const customLangInputContainer = document.getElementById('customLangInputContainer');
     const customTargetLangInput = document.getElementById('customTargetLang');
+    const langField = document.getElementById('langField');
+    const langFieldLabel = document.getElementById('langFieldLabel');
+    const langFieldChip = document.getElementById('langFieldChip');
+    const langLens = document.getElementById('langLens');
+    const languageItems = Array.from(langLens.querySelectorAll('.lens-item'));
+    const srcLangTag = document.getElementById('srcLangTag');
+    const dstLangTag = document.getElementById('dstLangTag');
 
-    // Setup UI translations
-    const elementsToTranslate = document.querySelectorAll('[data-i18n]');
-    const popupTranslations = {
-        en: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Target Language',
-            toggleDisplay: 'Show button',
-            settingsAdvanced: 'Advanced Settings',
-            optionOther: 'Other...',
-            customLangHelp: 'ISO code'
-        },
-        zh: {
-            popupTitle: 'Pointer',
-            labelTargetLang: '目标语言',
-            toggleDisplay: '显示按钮',
-            settingsAdvanced: '高级设置',
-            optionOther: '其他...',
-            customLangHelp: 'ISO 代码'
-        },
-        ja: {
-            popupTitle: 'Pointer',
-            labelTargetLang: '対象言語',
-            toggleDisplay: 'ボタン表示',
-            settingsAdvanced: '詳細設定',
-            optionOther: 'その他...',
-            customLangHelp: 'ISO コード'
-        },
-        fr: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Langue cible',
-            toggleDisplay: 'Afficher bouton',
-            settingsAdvanced: 'Paramètres avancés',
-            optionOther: 'Autre...',
-            customLangHelp: 'Code ISO'
-        },
-        de: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Zielsprache',
-            toggleDisplay: 'Button anzeigen',
-            settingsAdvanced: 'Erweiterte Einstellungen',
-            optionOther: 'Andere...',
-            customLangHelp: 'ISO-Code'
-        },
-        es: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Idioma',
-            toggleDisplay: 'Mostrar botón',
-            settingsAdvanced: 'Configuración avanzada',
-            optionOther: 'Otro...',
-            customLangHelp: 'Código ISO'
-        },
-        ko: {
-            popupTitle: 'Pointer',
-            labelTargetLang: '대상 언어',
-            toggleDisplay: '버튼 표시',
-            settingsAdvanced: '고급 설정',
-            optionOther: '기타...',
-            customLangHelp: 'ISO 코드'
-        },
-        pt: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Idioma',
-            toggleDisplay: 'Mostrar botão',
-            settingsAdvanced: 'Configurações avançadas',
-            optionOther: 'Outro...',
-            customLangHelp: 'Código ISO'
-        },
-        ru: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Язык',
-            toggleDisplay: 'Показать кнопку',
-            settingsAdvanced: 'Расширенные настройки',
-            optionOther: 'Другой...',
-            customLangHelp: 'Код ISO'
-        },
-        it: {
-            popupTitle: 'Pointer',
-            labelTargetLang: 'Lingua',
-            toggleDisplay: 'Mostra pulsante',
-            settingsAdvanced: 'Impostazioni avanzate',
-            optionOther: 'Altro...',
-            customLangHelp: 'Codice ISO'
-        }
-    };
+    const LANG_CODE_PATTERN = /^[a-z]{2,8}(-[a-z0-9]{2,8})*$/;
+    let selectedLanguage = 'en';
+    let activeOptionIndex = -1;
+    let customLangSaveTimer;
+
     function applyTranslations(lang) {
-        elementsToTranslate.forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (popupTranslations[lang] && popupTranslations[lang][key]) {
-                el.textContent = popupTranslations[lang][key];
-            }
-        });
+        if (typeof I18n === 'undefined') {
+            return;
+        }
+        I18n.applyTranslations(lang);
+        document.title = I18n.translate('popupTitle', lang);
     }
 
-    // Add click handler for options link
-    openOptionsLink.addEventListener('click', function (e) {
-        e.preventDefault(); // Prevent default click behavior
-        chrome.runtime.openOptionsPage();
-    });
-
-    // Helper function to check if a language code is standard
     function isStandardLanguage(langCode) {
-        const standardOptions = Array.from(targetLangSelect.options)
-            .map(opt => opt.value)
-            .filter(val => val !== 'other');
-        return standardOptions.includes(langCode);
+        return languageItems.some((item) => item.dataset.value === langCode && langCode !== 'other');
     }
 
-    // Load saved settings including UI language
-    chrome.storage.sync.get(['uiLang', 'isActive', 'targetLang', 'showButton'], function (result) {
-        const lang = result.uiLang || 'en';
-        applyTranslations(lang);
+    function isValidLangCode(value) {
+        return LANG_CODE_PATTERN.test(value);
+    }
 
-        if (result.showButton !== undefined) {
-            showButtonToggle.checked = result.showButton;
-        } else {
-            // Default to showing the button if not set
-            showButtonToggle.checked = true;
-            chrome.storage.sync.set({ showButton: true });
+    function getItemLabel(item) {
+        const copy = item.cloneNode(true);
+        copy.querySelector('.code')?.remove();
+        return copy.textContent.trim();
+    }
+
+    function renderLanguageSelection() {
+        const selectedItem = languageItems.find((item) => item.dataset.value === selectedLanguage);
+        const customValue = customTargetLangInput.value.trim().toLowerCase();
+        let label = '';
+        let code = '—';
+
+        if (selectedLanguage === 'other' && customValue) {
+            label = customValue;
+            code = customValue.slice(0, 4).toUpperCase();
+        } else if (selectedItem) {
+            label = getItemLabel(selectedItem);
+            code = selectedItem.querySelector('.code')?.textContent.trim() || selectedLanguage.toUpperCase();
         }
 
-        if (result.targetLang) {
-            if (isStandardLanguage(result.targetLang)) {
-                targetLangSelect.value = result.targetLang;
-                customLangInputContainer.style.display = 'none'; // Hide custom input
-            } else {
-                targetLangSelect.value = 'other';
-                customTargetLangInput.value = result.targetLang;
-                customLangInputContainer.style.display = 'block'; // Show custom input
-            }
-        } else {
-            // Default to English if nothing is set
-            targetLangSelect.value = 'en';
-            customLangInputContainer.style.display = 'none';
-        }
-    });
+        langFieldLabel.textContent = label;
+        langFieldChip.textContent = code;
+        dstLangTag.textContent = code;
+        customLangInputContainer.style.display = selectedLanguage === 'other' ? 'block' : 'none';
+        customTargetLangInput.classList.toggle(
+            'invalid',
+            selectedLanguage === 'other' && Boolean(customValue) && !isValidLangCode(customValue)
+        );
 
-    // Handle target language change (both select and input)
-    function saveTargetLanguage() {
-        let targetLangValue;
-        if (targetLangSelect.value === 'other') {
-            targetLangValue = customTargetLangInput.value.trim();
-            // Basic validation to ensure a value is provided
-            if (!targetLangValue) {
-                return; // Don't save empty values
-            }
-        } else {
-            targetLangValue = targetLangSelect.value;
-        }
-
-        // Save the target language
-        chrome.storage.sync.set({ targetLang: targetLangValue }, function () {
-            // Notify content scripts about the language change if active
-            chrome.storage.sync.get(['isActive'], function (result) {
-                if (result.isActive) {
-                    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                        if (tabs[0]) {
-                            chrome.tabs.sendMessage(tabs[0].id, {
-                                action: 'activate',
-                                targetLang: targetLangValue
-                            }, function (response) {
-                                // Handle potential errors silently
-                                if (chrome.runtime.lastError) {
-                                    console.log('Error notifying content script: ', chrome.runtime.lastError.message);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+        languageItems.forEach((item) => {
+            const isSelected = item.dataset.value === selectedLanguage;
+            item.classList.toggle('active', isSelected);
+            item.setAttribute('aria-selected', String(isSelected));
         });
     }
 
-    // Show/hide custom input based on selection
-    targetLangSelect.addEventListener('change', function () {
-        if (targetLangSelect.value === 'other') {
-            customLangInputContainer.style.display = 'block';
-            customTargetLangInput.focus(); // Focus the input field
-        } else {
-            customLangInputContainer.style.display = 'none';
+    function persistTargetLanguage() {
+        void saveTargetLanguage().catch((error) => {
+            console.error('Failed to save target language:', error);
+        });
+    }
+
+    function positionLens() {
+        const rect = langField.getBoundingClientRect();
+        const top = rect.bottom + 6;
+        const availableHeight = document.documentElement.clientHeight - top - 10;
+        langLens.style.top = `${top}px`;
+        langLens.style.left = `${rect.left}px`;
+        langLens.style.width = `${rect.width}px`;
+        langLens.style.maxHeight = `${Math.max(96, availableHeight)}px`;
+    }
+
+    function setFocusedOption(index) {
+        languageItems.forEach((item) => item.classList.remove('focused'));
+        if (languageItems.length === 0) {
+            activeOptionIndex = -1;
+            langField.removeAttribute('aria-activedescendant');
+            return;
         }
-        saveTargetLanguage(); // Save whenever the select changes
+
+        activeOptionIndex = (index + languageItems.length) % languageItems.length;
+        const item = languageItems[activeOptionIndex];
+        item.classList.add('focused');
+        langField.setAttribute('aria-activedescendant', item.id);
+        item.scrollIntoView({ block: 'nearest' });
+    }
+
+    function openLens() {
+        positionLens();
+        langLens.classList.add('show');
+        langLens.setAttribute('aria-hidden', 'false');
+        langField.setAttribute('aria-expanded', 'true');
+        const selectedIndex = languageItems.findIndex((item) => item.dataset.value === selectedLanguage);
+        setFocusedOption(selectedIndex >= 0 ? selectedIndex : 0);
+    }
+
+    function closeLens() {
+        langLens.classList.remove('show');
+        langLens.setAttribute('aria-hidden', 'true');
+        langField.setAttribute('aria-expanded', 'false');
+        langField.removeAttribute('aria-activedescendant');
+        languageItems.forEach((item) => item.classList.remove('focused'));
+        activeOptionIndex = -1;
+    }
+
+    async function saveTargetLanguage() {
+        let targetLangValue = selectedLanguage;
+        if (selectedLanguage === 'other') {
+            targetLangValue = customTargetLangInput.value.trim().toLowerCase();
+            if (!targetLangValue || !isValidLangCode(targetLangValue)) {
+                return;
+            }
+        }
+
+        await Settings.setSync({ targetLang: targetLangValue });
+    }
+
+    function selectLanguage(value, { focusCustomInput = false, persist = true } = {}) {
+        if (!languageItems.some((item) => item.dataset.value === value)) {
+            return;
+        }
+
+        selectedLanguage = value;
+        renderLanguageSelection();
+        closeLens();
+
+        if (focusCustomInput && value === 'other') {
+            requestAnimationFrame(() => customTargetLangInput.focus());
+        } else {
+            langField.focus();
+        }
+
+        if (persist) {
+            persistTargetLanguage();
+        }
+    }
+
+    function flushCustomLanguageSave() {
+        if (!customLangSaveTimer) {
+            return;
+        }
+        clearTimeout(customLangSaveTimer);
+        customLangSaveTimer = null;
+        persistTargetLanguage();
+    }
+
+    openOptionsLink.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
+            window.open('options.html');
+            return;
+        }
+        chrome.runtime.sendMessage({ action: 'openOptions' }, function () {
+            void chrome.runtime.lastError;
+        });
     });
 
-    // Save when custom input changes
-    customTargetLangInput.addEventListener('change', saveTargetLanguage);
-    customTargetLangInput.addEventListener('input', saveTargetLanguage); // Save as user types
+    langField.addEventListener('click', function (event) {
+        event.stopPropagation();
+        if (langLens.classList.contains('show')) {
+            closeLens();
+        } else {
+            openLens();
+        }
+    });
 
-    // Add validation for custom language code input
+    langField.addEventListener('keydown', function (event) {
+        const isOpen = langLens.classList.contains('show');
+
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (!isOpen) {
+                openLens();
+            }
+            setFocusedOption(activeOptionIndex + (event.key === 'ArrowDown' ? 1 : -1));
+            return;
+        }
+
+        if (event.key === 'Home' || event.key === 'End') {
+            if (!isOpen) {
+                return;
+            }
+            event.preventDefault();
+            setFocusedOption(event.key === 'Home' ? 0 : languageItems.length - 1);
+            return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            if (!isOpen) {
+                openLens();
+            } else if (activeOptionIndex >= 0) {
+                const value = languageItems[activeOptionIndex].dataset.value;
+                selectLanguage(value, { focusCustomInput: value === 'other' });
+            }
+            return;
+        }
+
+        if (event.key === 'Escape' && isOpen) {
+            event.preventDefault();
+            closeLens();
+        } else if (event.key === 'Tab') {
+            closeLens();
+        }
+    });
+
+    langLens.addEventListener('click', function (event) {
+        const item = event.target.closest('.lens-item');
+        if (!item) {
+            return;
+        }
+        event.stopPropagation();
+        const value = item.dataset.value;
+        selectLanguage(value, { focusCustomInput: value === 'other' });
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!langField.contains(event.target) && !langLens.contains(event.target)) {
+            closeLens();
+        }
+    });
+
+    window.addEventListener('resize', function () {
+        if (langLens.classList.contains('show')) {
+            positionLens();
+        }
+    });
+
+    customTargetLangInput.addEventListener('change', flushCustomLanguageSave);
     customTargetLangInput.addEventListener('input', function () {
-        const value = this.value.trim().toLowerCase();
-        // Basic validation - only allow alpha characters
-        if (value && !/^[a-z]+$/.test(value)) {
-            this.classList.add('invalid');
-        } else {
-            this.classList.remove('invalid');
+        renderLanguageSelection();
+
+        clearTimeout(customLangSaveTimer);
+        customLangSaveTimer = setTimeout(() => {
+            customLangSaveTimer = null;
+            persistTargetLanguage();
+        }, 400);
+    });
+
+    window.addEventListener('pagehide', flushCustomLanguageSave);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+            flushCustomLanguageSave();
         }
     });
 
-    // Toggle button visibility
     showButtonToggle.addEventListener('change', function () {
-        const showButton = showButtonToggle.checked;
-
-        chrome.storage.sync.set({
-            showButton: showButton
+        void Settings.setSync({ showButton: showButtonToggle.checked }).catch((error) => {
+            console.error('Failed to save button visibility:', error);
         });
     });
-}); 
+
+    srcLangTag.textContent = 'AUTO';
+    langLens.setAttribute('aria-hidden', 'true');
+
+    try {
+        const result = await Settings.getSync(['uiLang', 'targetLang', 'showButton'], true);
+        applyTranslations(result.uiLang || 'en');
+
+        if (result.showButton === undefined) {
+            showButtonToggle.checked = true;
+            await Settings.setSync({ showButton: true });
+        } else {
+            showButtonToggle.checked = result.showButton;
+        }
+
+        if (result.targetLang && isStandardLanguage(result.targetLang)) {
+            selectedLanguage = result.targetLang;
+        } else if (result.targetLang) {
+            selectedLanguage = 'other';
+            customTargetLangInput.value = result.targetLang;
+        } else {
+            selectedLanguage = 'en';
+        }
+
+        renderLanguageSelection();
+    } catch (error) {
+        console.error('Failed to initialize popup:', error);
+        applyTranslations('en');
+        renderLanguageSelection();
+    }
+});

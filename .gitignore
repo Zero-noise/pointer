@@ -1,7 +1,9 @@
-# User specified files to ignore
+# Local instructions and unpublished working documents
 AGENTS.md
 SAAS_DEVELOPMENT_PLAN.md
 CLAUDE.md
+STORE_SUBMISSION.md
+SECURITY.md
 
 # macOS system files
 .DS_Store

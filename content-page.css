@@ -1,0 +1,174 @@
+/* Styles for Pointer-owned nodes inserted into the page's light DOM.
+   Keep this file separate from content.css: the FAB stylesheet belongs only
+   inside the closed shadow root and must not affect matching site IDs/classes.
+
+   This is the ONE file in the extension that cannot read theme.css. It is
+   injected into the host page's <head>, where declaring :root custom
+   properties would leak Pointer's palette into the site (and collide with the
+   site's own). So the values below are written out literally — they are copies
+   of theme.css, not independent choices. Keep them in sync:
+
+     --glass-chip   rgba(255,255,255,0.42)  /  dark 0.10
+     --glass-rim-a  0.40                    /  dark 0.24
+     --glass-spec-a 0.55                    /  dark 0.22
+     --ink-rgb      62,58,54                /  dark 241,236,230
+     --ink-1        #3E3A36                 /  dark #E6E2DD
+     --accent-rgb   31,28,25 (濃墨)          /  dark 245,242,237 (胡粉)
+     --accent-rim   0.38 α                  /  dark 0.55
+     --font-sans    Hiragino Kaku Gothic ProN, Yu Gothic, -apple-system, …
+
+   NOTE the signal is ink, and ink is defined by its distance from the paper:
+   濃墨 on a dark page is invisible, not merely weak. A mid-tone accent would
+   survive a wrong guess about the host page with only some contrast lost;
+   this one does not. prefers-color-scheme tells us the OS preference, not the
+   site's actual background, so every mark below needs BOTH themes spelled
+   out, hover states included (a :hover rule outranks the dark block, so an
+   un-overridden hover would repaint the mark black on a black page).
+
+   The FAB does not have this problem: it samples the pixels behind itself and
+   flips per-page (--fab-accent-rgb). We cannot do that here — these marks sit
+   inline in the site's own text, on whatever the site painted behind it.
+*/
+
+[data-pointer-extension-owned="loading"].ai-translator-loading-indicator {
+    position: absolute;
+    z-index: 2147483646;
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 14px;
+    background: rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    box-shadow:
+        0 1px 4px rgba(62, 58, 54, 0.05),
+        0 2px 10px rgba(62, 58, 54, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    color: #3e3a36;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", -apple-system,
+                 BlinkMacSystemFont, Inter, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.18em;
+    line-height: 1;
+    animation: pointer-extension-ink-land-v1 0.55s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
+}
+
+@media (prefers-color-scheme: dark) {
+    [data-pointer-extension-owned="loading"].ai-translator-loading-indicator {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.24);
+        box-shadow:
+            0 1px 4px rgba(0, 0, 0, 0.35),
+            0 2px 10px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        color: #e6e2dd;
+    }
+}
+
+@keyframes pointer-extension-ink-land-v1 {
+    0% {
+        opacity: 0;
+        transform: translateY(3px);
+        filter: blur(1.6px);
+    }
+    55% {
+        opacity: 0.92;
+        filter: blur(0.4px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+[data-pointer-extension-owned="loading"] .ai-translator-loading-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+[data-pointer-extension-owned="loading"] .ai-translator-loading-dots > span {
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.22;
+    animation: pointer-extension-ink-breathe-v1 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+[data-pointer-extension-owned="loading"] .ai-translator-loading-dots > span:nth-child(1) { animation-delay: 0s; }
+[data-pointer-extension-owned="loading"] .ai-translator-loading-dots > span:nth-child(2) { animation-delay: 0.16s; }
+[data-pointer-extension-owned="loading"] .ai-translator-loading-dots > span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes pointer-extension-ink-breathe-v1 {
+    0%, 100% { opacity: 0.22; }
+    50% { opacity: 0.95; }
+}
+
+/* ── Marks · 墨 ─────────────────────────────────────────────────────────
+   --accent-rim draws the underline beneath a translated sentence.
+   Light = 濃墨 31,28,25. Dark = 胡粉 245,242,237. Alphas run one notch under
+   what a chromatic accent would need: with no chroma left, value carries the
+   whole signal, so the same number reads heavier. */
+
+[data-pointer-extension-owned="translation"].ai-translator-highlight {
+    background: transparent;
+    border-bottom: 1px solid rgba(31, 28, 25, 0.38);
+    transition: border-bottom-color 0.25s ease;
+    cursor: pointer;
+    animation: pointer-extension-highlight-in-v1 0.4s ease-out forwards;
+}
+
+@keyframes pointer-extension-highlight-in-v1 {
+    0% { border-bottom-color: rgba(31, 28, 25, 0); }
+    100% { border-bottom-color: rgba(31, 28, 25, 0.38); }
+}
+
+[data-pointer-extension-owned="translation"].ai-translator-highlight:hover {
+    border-bottom-color: rgba(31, 28, 25, 0.7);
+}
+
+[data-pointer-extension-owned="translation"].ai-translator-original {
+    background: transparent;
+    border-bottom: 1px dashed rgba(31, 28, 25, 0.3);
+    transition: border-bottom-color 0.25s ease;
+    cursor: pointer;
+}
+
+[data-pointer-extension-owned="translation"].ai-translator-original:hover {
+    border-bottom-color: rgba(31, 28, 25, 0.62);
+}
+
+/* Dark — the ink flips to gofun. Every state above is repeated, including the
+   hovers: :hover outranks these selectors, so anything left out here would
+   fall through to the 濃墨 rule and vanish on a dark page. The keyframe is
+   restated for the same reason — its 100% frame pins the resting colour. */
+@media (prefers-color-scheme: dark) {
+    [data-pointer-extension-owned="translation"].ai-translator-highlight {
+        border-bottom-color: rgba(245, 242, 237, 0.55);
+    }
+
+    @keyframes pointer-extension-highlight-in-v1 {
+        0% { border-bottom-color: rgba(245, 242, 237, 0); }
+        100% { border-bottom-color: rgba(245, 242, 237, 0.55); }
+    }
+
+    [data-pointer-extension-owned="translation"].ai-translator-highlight:hover {
+        border-bottom-color: rgba(245, 242, 237, 0.85);
+    }
+
+    [data-pointer-extension-owned="translation"].ai-translator-original {
+        border-bottom-color: rgba(245, 242, 237, 0.42);
+    }
+
+    [data-pointer-extension-owned="translation"].ai-translator-original:hover {
+        border-bottom-color: rgba(245, 242, 237, 0.75);
+    }
+}

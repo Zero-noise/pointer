@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pointer permission smoke test</title>
+    <style>
+        body { font: 13px/1.5 -apple-system, system-ui, sans-serif; margin: 24px; max-width: 760px; }
+        button { font: inherit; padding: 8px 14px; margin-right: 8px; }
+        pre { background: #f4f4f5; padding: 12px; border-radius: 6px; overflow-x: auto; }
+        .pass { color: #15803d; } .fail { color: #b91c1c; }
+    </style>
+</head>
+<body>
+<h1>Pointer permission smoke test</h1>
+<p>
+    Answers one question Chrome does not document: when a host-wide grant
+    (<code>https://host/*</code>, which covers every port) is already held and the
+    extension then requests the port-scoped form (<code>https://host:443/*</code>),
+    does removing the host-wide pattern leave the port-scoped grant standing?
+    <code>options.js</code>&nbsp;<code>narrowLegacyHostPermission()</code> assumes it
+    might not, and re-requests. This page proves which branch real Chrome takes.
+</p>
+<p>Run headless via <code>node tests/chrome-permission-smoke.js</code>, or click below and grant every prompt.</p>
+<button id="run">Run all steps</button>
+<button id="reset">Reset grants</button>
+<pre id="out">Not run yet.</pre>
+<script src="smoke.js"></script>
+</body>
+</html>

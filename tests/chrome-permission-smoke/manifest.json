@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "Pointer permission smoke test",
+    "version": "1.0.0",
+    "description": "Isolated probe for Chrome's broad vs port-scoped host permission semantics.",
+    "permissions": [],
+    "optional_host_permissions": [
+        "https://*/*",
+        "http://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    }
+}

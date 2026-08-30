@@ -1,419 +1,470 @@
+/* ===================================================================
+   Pointer · content.css — FAB / 硝子
+
+   theme.css is fetched and prepended to this sheet inside the closed
+   shadow root, so every token below (--accent-rgb, --glass-*, --ink-*,
+   --font-sans, --sh-*) is the SAME token the popup and the options page
+   read. The ball is not "styled like" the rest of the extension; it is
+   cut from the same declared material.
+
+   Numeric fallbacks are kept on every var() so the FAB still renders
+   correctly in the one frame before theme.css lands.
+   =================================================================== */
+
+/* ===================================================================
+   FAB 按钮 — "硝子"交互模型
+
+   物理隐喻：一枚磨砂玻璃圆片贴在纸面上。
+   - 静止时完全不动
+   - 悬停 = 浮起（translateY + 阴影扩散 + 更清透）
+   - 按下 = 按入纸面（:active scale + 阴影收紧）
+   - 松开 = 弹性回弹（spring curve 自动处理，不需 JS）
+   - 激活 = 同一块玻璃被上了墨（边沿 + 滲み + 旋转墨带）
+   - 拖拽 = 拎起（高 elevation + 方向倾斜）
+   =================================================================== */
+
+/* CSS 变量：JS `applyButtonThickness()` 在 0–100 之间插值这些值
+   默认值是「薄玻璃」(slider=0)，dark mode @media 覆盖默认成深色模式版本 */
 #ai-translator-button {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    width: 60px;
-    height: 60px;
+    /* 与 JS 默认 buttonSize(64) 对齐，避免 storage 返回后首帧跳大一号 */
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    /* 暖色纸质感背景 - 匹配 options 页面的 surface 颜色 */
-    background: linear-gradient(135deg, #fdfaf5 0%, #f8f3eb 100%);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    /* 暖色边框 - 匹配 options 的 border-color */
-    border: 2px solid #e8dac8;
+    /* 0.42 / 0.40 / 0.55 = theme.css 的 --glass-chip / --glass-rim-a /
+       --glass-spec-a —— 球就是一枚圆形的 chip，和 popup 的字段同一块玻璃 */
+    background: rgba(var(--glass-bg-rgb, 255, 255, 255), var(--glass-bg-a, 0.42));
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: var(--glass-border-w, 1px) solid rgba(255, 255, 255, var(--glass-border-a, 0.4));
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    pointer-events: auto;
     z-index: 9999;
-    /* 平滑过渡 */
-    transition: all 0.2s ease;
+    /* 按下用 0.1s 快速响应，松开用 0.25s spring 回弹 — 不对称时序是高级感的来源 */
+    transition:
+        transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background 0.2s ease-out,
+        box-shadow 0.25s ease-out,
+        border-color 0.2s ease-out,
+        opacity 0.2s ease-out;
     user-select: none;
-    /* 柔和的纸质阴影 */
     box-shadow:
-        0 2px 6px rgba(74, 63, 53, 0.08),
-        0 4px 12px rgba(74, 63, 53, 0.04);
-    transform-origin: bottom right;
+        0 1px var(--glass-sh1-blur, 4px) rgba(0, 0, 0, var(--glass-sh1-a, 0.03)),
+        0 var(--glass-sh2-y, 2px) var(--glass-sh2-blur, 8px) rgba(0, 0, 0, var(--glass-sh2-a, 0.02)),
+        inset 0 1px 0 rgba(255, 255, 255, var(--glass-inset-a, 0.55));
+    transform-origin: center;
 }
 
+/* 悬停：玻璃从纸面浮起，更清透 — 在 base 变量基础上叠加 delta */
 #ai-translator-button:hover {
-    transform: scale(1.08);
-    /* 悬浮时更亮的纸质感 */
-    background: linear-gradient(135deg, #ffffff 0%, #fdfaf5 100%);
+    transform: translateY(-2px);
+    background: rgba(var(--glass-bg-rgb, 255, 255, 255), calc(var(--glass-bg-a, 0.42) + 0.14));
     box-shadow:
-        0 4px 10px rgba(74, 63, 53, 0.1),
-        0 8px 20px rgba(74, 63, 53, 0.06);
-    /* 悬浮时边框变深 - 匹配 border-focus */
-    border-color: #d4bba3;
+        0 6px calc(var(--glass-sh1-blur, 4px) + 12px) rgba(0, 0, 0, calc(var(--glass-sh1-a, 0.03) + 0.02)),
+        0 14px calc(var(--glass-sh2-blur, 8px) + 24px) rgba(0, 0, 0, calc(var(--glass-sh2-a, 0.02) + 0.01)),
+        inset 0 1px 0 rgba(255, 255, 255, calc(var(--glass-inset-a, 0.55) + 0.05));
+    border-color: rgba(255, 255, 255, calc(var(--glass-border-a, 0.4) + 0.15));
 }
 
-/* Dark Mode 支持 */
+/* 按下：玻璃被按入纸面
+   快进慢出：按下 0.1s 立刻响应，松开由 base 的 0.25s spring 处理弹回 */
+#ai-translator-button:active {
+    transform: scale(0.96);
+    box-shadow:
+        0 0 2px rgba(0, 0, 0, calc(var(--glass-sh1-a, 0.03) + 0.01)),
+        inset 0 1px 0 rgba(255, 255, 255, calc(var(--glass-inset-a, 0.55) - 0.05));
+    transition:
+        transform 0.1s ease-out,
+        box-shadow 0.1s ease-out;
+}
+
+/* Dark Mode — 沿用白玻璃硝子配方，只把 α 调薄
+   关键洞察：硝子不是材质切换题，是 alpha 调节题。
+   白玻璃 @ 0.35 α 叠在白纸上 → 温柔的白雾 disc；
+   白玻璃 @ 0.12 α 叠在黑纸上 → 暗炭 disc，同一块物件，只是反差缩到暗底阈值。
+   backdrop-filter blur + saturate 在任何底色上都继续是 "玻璃" 的物理来源，
+   无需靠 radial-gradient 硬画一个 fake highlight —— 顶光 specular 就由
+   1px inset 白边 + 白色细 rim 承担；两者都是物理正当的（edge-catch 高光），
+   而不是贴花。亮底的 frostA 0.34→0.46（越暗越厚）；暗底反向变薄
+   （越暗越薄），让 disc 本体不过白不发光，只是一块微微可辨的夜玻璃。 */
 @media (prefers-color-scheme: dark) {
     #ai-translator-button {
-        background: linear-gradient(135deg, #352f28 0%, #2a2420 100%);
-        border-color: #3d3530;
-        box-shadow:
-            0 2px 6px rgba(0, 0, 0, 0.3),
-            0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    #ai-translator-button:hover {
-        background: linear-gradient(135deg, #3d362e 0%, #352f28 100%);
-        border-color: #5a4d43;
-        box-shadow:
-            0 4px 10px rgba(0, 0, 0, 0.4),
-            0 8px 20px rgba(0, 0, 0, 0.3);
+        /* 薄 frost —— 在纯黑底上约 #1F1F1F 炭色 disc，不过白 */
+        --glass-bg-a: 0.14;
+        /* 白 rim 极低 α —— 让边缘几乎融入背景，disc 读作自然一块，不是镶了白圈 */
+        --glass-border-a: 0.10;
+        /* 1px 顶沿 specular 再收 —— 刚能辨出有"上光"即可，不要成为主视觉 */
+        --glass-inset-a: 0.18;
+        /* 落影：暗底下更深更远 */
+        --glass-sh1-a: 0.45;
+        --glass-sh2-a: 0.25;
+        /* 拖拽时 frost 稍厚（离开黑纸 backdrop 对比失效后的补偿） */
+        --glass-drag-a: 0.22;
+        /* 激活信号 fallback（JS HSP 未跑起来时）：暗底玻璃更薄、落影更黑，
+           墨要重一档才"落得实"。色相 fallback 走 theme.css 的 @media，
+           那里 --accent-rgb 已经翻成胡粉，所以采样跑起来之前也不会是黑上黑。 */
+        --fab-signal-a: 0.72;
+        --fab-glow-a: 0.20;
     }
 }
 
-/* 流畅的呼吸动画 - 只改变透明度，性能最优 */
-@keyframes breathe {
-    0%, 100% {
-        opacity: 0.9;
+/* 激活态 halo ring — 外沿一圈缓慢旋转的墨色渐变带
+   物理隐喻：玻璃本体几乎不变，激活信号由外沿旋转光带承担。
+   入场/退场非对称：入场从玻璃内侧生长出来，带轻微过冲再回落（像光带"聚焦"到位）；
+   退场向外漂散，opacity 先走，transform 稍后落定（像雾气耗散）。 */
+@keyframes halo-rotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* 入场：从内侧小尺寸→过冲到略大→回落到位；opacity 在前 60% 完成 */
+@keyframes halo-enter {
+    0% {
+        opacity: 0;
+        transform: scale(0.84);
     }
-    50% {
+    55% {
         opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
-/* 翻译状态：暖色纸质感激活态 - 使用 success 绿色 + 毛玻璃效果 */
+/* ─── 激活态：还是那块玻璃，只是被上了墨 ─────────────────────────
+   玻璃本体（底色、blur、落影）一动不动，顶光白鳞也留着 —— 玻璃的边缘
+   高光是物理事实，不被状态覆盖。rim 仍是玻璃边沿，信号也不用额外色相，
+   因而激活前后始终是同一种材质。
+
+   信号由三样东西承担，全部是墨、全部是"画上去的"而不是"换掉的"：
+     1. 边沿 —— 白鳞之上覆一层濃墨，是上色，不是换材质
+     2. 滲み —— 软扩散的墨晕，像墨洇进纸里，没有硬边
+     3. halo —— 外沿那条旋转墨带（见下），同一支墨
+
+   墨是全局唯一的信号：popup 的开关、options 的主按钮、译文下面那条
+   下划线，和这里是同一支。α 由 JS 按环境亮度插值（暗底重一档），
+   色相同样由 JS 翻（--fab-accent-rgb：亮底濃墨 / 暗底胡粉）——
+   墨是靠"离纸多远"定义的，没法一个值跨明暗，必须跟着纸走。
+   =============================================================== */
 #ai-translator-button.active {
-    /* 半透明的毛玻璃背景 - 增加质感 */
-    background: linear-gradient(135deg, 
-        rgba(232, 237, 225, 0.85) 0%, 
-        rgba(212, 227, 200, 0.82) 100%);
-
-    /* 强化的毛玻璃效果 */
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-
-    /* 成功状态的边框 - 匹配 success-color */
-    border: 2px solid #8b9d77;
-
-    /* 增强的多层阴影 - 提升质感 */
+    background: rgba(var(--glass-bg-rgb, 255, 255, 255), var(--glass-bg-a, 0.42));
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: var(--glass-border-w, 1px) solid
+        rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), var(--fab-signal-a, 0.42));
     box-shadow:
-        0 0 0 4px rgba(139, 157, 119, 0.08),
-        0 4px 16px rgba(139, 157, 119, 0.25),
-        0 8px 32px rgba(139, 157, 119, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
-
-    /* 轻微缩放 */
-    transform: scale(1.06);
-
-    /* 流畅的呼吸动画 */
-    animation: breathe 2.2s ease-in-out infinite;
+        /* 落影：中性黑（物理正确），和非激活完全一致 */
+        0 1px var(--glass-sh1-blur, 4px) rgba(0, 0, 0, var(--glass-sh1-a, 0.03)),
+        0 var(--glass-sh2-y, 2px) var(--glass-sh2-blur, 8px) rgba(0, 0, 0, var(--glass-sh2-a, 0.02)),
+        /* 顶光白鳞：和非激活一致，玻璃质感不因状态而消失 */
+        inset 0 1px 0 rgba(255, 255, 255, var(--glass-inset-a, 0.55)),
+        /* 滲み：blur 18 / spread 1，软到没有可辨的边 —— 是墨洇进纸里，
+           不是“套上去”。这一条和 popup 开关打开时的 0 0 8px 同源。
+           暗底上同一条公式画出来的是胡粉，那时它真的是一圈光晕。 */
+        0 0 18px 1px rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), var(--fab-glow-a, 0.10));
 }
 
-/* Dark Mode 激活状态 */
-@media (prefers-color-scheme: dark) {
-    #ai-translator-button.active {
-        background: linear-gradient(135deg, 
-            rgba(45, 50, 41, 0.88) 0%, 
-            rgba(58, 64, 49, 0.85) 100%);
-        backdrop-filter: blur(16px) saturate(140%);
-        -webkit-backdrop-filter: blur(16px) saturate(140%);
-        border-color: #8a9b76;
-        box-shadow:
-            0 0 0 4px rgba(138, 155, 118, 0.12),
-            0 4px 16px rgba(138, 155, 118, 0.35),
-            0 8px 32px rgba(138, 155, 118, 0.22),
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
+/* Halo ring 包装层
+   默认状态 = 退场终点：opacity 0，scale(1.10) 向外漂散。
+   激活时切到 halo-enter keyframes（从 scale 0.84 过冲到 1.05 再回落到 1）。
+   关闭激活 = keyframes 失效，transition 从当前稳态 (opacity 1, scale 1)
+   回到默认 (opacity 0, scale 1.10)，所以退场轨迹是"向外漂开 + 淡出"，
+   和入场"向内收紧 + 淡入 + 过冲"完全不同 → 非对称。
+
+   opacity 比 transform 快一点（0.42s vs 0.58s），造就"光先散、形后收"的尾韵。 */
+#ai-translator-halo {
+    position: absolute;
+    inset: -6px;
+    width: calc(100% + 12px);
+    height: calc(100% + 12px);
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(1.10);
+    transition:
+        opacity 0.42s cubic-bezier(0.4, 0.0, 0.2, 1),
+        transform 0.58s cubic-bezier(0.22, 0.1, 0.28, 1);
+    z-index: 0;
 }
 
+#ai-translator-halo svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+    transform-origin: center;
+    /* 旋转常开：wrapper 的 opacity 控制可见性；
+       这样退场淡出时旋转不会冻结、不会"啪"地跳回 0°。 */
+    animation: halo-rotate 8s linear infinite;
+}
+
+/* Halo 渐变停点：经 currentColor 中转接入信号墨。
+   —— 直接在 <stop> 上写 `stop-color: rgb(var(...))` 会撞 Chromium 老 bug，
+   CSS 变量在 <stop> 上不动态解析；通过 wrapper 的 `color` + 停点 `currentColor`
+   绕开。--fab-accent-rgb 由 JS 按底色翻（濃墨 / 胡粉），转接到 currentColor
+   之后 halo / 进度环 / 勾号自动共用同一支墨、同一时刻翻。 */
+#ai-translator-halo {
+    color: rgb(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)));
+}
+#ai-translator-halo .halo-stop-start {
+    stop-color: currentColor;
+    stop-opacity: 0.95;
+}
+#ai-translator-halo .halo-stop-mid {
+    stop-color: currentColor;
+    stop-opacity: 0.35;
+}
+#ai-translator-halo .halo-stop-end {
+    stop-color: currentColor;
+    stop-opacity: 0;
+}
+
+/* 激活：用 keyframes 驱动入场（keyframes 覆盖默认的 opacity/transform，
+   结束后 forwards 把稳态钉在 100% 帧 = opacity 1 / scale 1）。
+   cubic-bezier(.2,.8,.3,1) 是平滑 ease-out，配合 55% 帧的过冲做"聚焦"感。 */
+#ai-translator-button.active #ai-translator-halo {
+    animation: halo-enter 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+/* 拖拽中暂停旋转，避免视觉冲突 */
+#ai-translator-button.dragging #ai-translator-halo svg {
+    animation-play-state: paused;
+}
+
+/* 激活态悬停：和非激活悬停同一个动作（浮起 + 玻璃变清透），
+   墨边和滲み跟着加浓一档 —— 状态不变，只是离纸面更远了 */
+#ai-translator-button.active:hover {
+    transform: translateY(-2px);
+    background: rgba(var(--glass-bg-rgb, 255, 255, 255), calc(var(--glass-bg-a, 0.42) + 0.14));
+    box-shadow:
+        0 6px calc(var(--glass-sh1-blur, 4px) + 12px) rgba(0, 0, 0, calc(var(--glass-sh1-a, 0.03) + 0.02)),
+        0 14px calc(var(--glass-sh2-blur, 8px) + 24px) rgba(0, 0, 0, calc(var(--glass-sh2-a, 0.02) + 0.01)),
+        inset 0 1px 0 rgba(255, 255, 255, calc(var(--glass-inset-a, 0.55) + 0.05)),
+        0 0 24px 2px rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), calc(var(--fab-glow-a, 0.10) + 0.06));
+    border-color: rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), calc(var(--fab-signal-a, 0.42) + 0.12));
+}
+
+/* 激活态按下 — 需要比 .active 更高的 specificity 才能把 box-shadow
+   覆盖回"压扁"的版本（否则 .active 的多层落影会盖住 :active 的紧凑落影）。
+   阴影值和基础 :active 保持一致：同一块玻璃按进纸面。 */
+#ai-translator-button.active:active {
+    transform: scale(0.96);
+    box-shadow:
+        0 0 2px rgba(0, 0, 0, calc(var(--glass-sh1-a, 0.03) + 0.01)),
+        inset 0 1px 0 rgba(255, 255, 255, calc(var(--glass-inset-a, 0.55) - 0.05));
+    transition:
+        transform 0.1s ease-out,
+        box-shadow 0.1s ease-out;
+}
+
+/* ─── 拖拽：拎起玻璃 ─── */
+/* 亮底白玻璃：bg α 从 0.35 抬到 0.55（玻璃离开纸面后 frost 更显）
+   暗底薄玻璃：--glass-drag-a 改写为 0.22（薄一档、不发白） */
 #ai-translator-button.dragging {
-    opacity: 0.9;
-    transform: scale(1.12);
+    /* 高 elevation — 大而柔的阴影表示离纸面远 */
+    transform: translateY(-4px) rotate(var(--drag-tilt, 0deg));
+    background: rgba(var(--glass-bg-rgb, 255, 255, 255), var(--glass-drag-a, 0.55));
     box-shadow:
-        0 8px 16px rgba(74, 63, 53, 0.15),
-        0 12px 28px rgba(74, 63, 53, 0.1);
-    transition: none;
+        0 12px 24px rgba(0, 0, 0, 0.08),
+        0 20px 48px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    /* 只过渡 transform（让倾斜平滑），left/top 直接控制位置保持即时 */
+    transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.4, 1);
     animation: none;
     cursor: grabbing;
 }
 
-/* Dark Mode 拖拽状态 */
+/* 深色模式拖拽：阴影更深更远，顶沿 inset 略亮 —— 玻璃被拎离黑纸面 */
 @media (prefers-color-scheme: dark) {
     #ai-translator-button.dragging {
         box-shadow:
-            0 8px 16px rgba(0, 0, 0, 0.4),
-            0 12px 28px rgba(0, 0, 0, 0.3);
+            0 12px 24px rgba(0, 0, 0, 0.35),
+            0 20px 48px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.32);
     }
 }
 
+/* ─── 长按 · 蓄力清墨 ────────────────────────────────────────────
+   物理隐喻：长按 = 用印前的蓄力。玻璃微收（scale 0.94），笔迹（icon）让位，
+   墨线沿盘边线性（1s）填满一圈，最后 V 勾像印下一笔确认。
+   颜色全部走 --accent-rgb —— 和激活边沿、halo、译文下划线同一支墨。
+   =============================================================== */
+
+/* 长按基础收缩：微收比旋转染色更克制，让注意力交给环。
+   阴影和普通 :active 一致 —— 同一块玻璃被按进纸面，没有额外材质。 */
 #ai-translator-button.long-pressing {
-    transform: scale(0.9);
-    transition: transform 0.25s ease;
+    transform: scale(0.94);
+    transition: transform 0.12s ease-out;
+    box-shadow:
+        0 0 2px rgba(0, 0, 0, calc(var(--glass-sh1-a, 0.03) + 0.01)),
+        inset 0 1px 0 rgba(255, 255, 255, calc(var(--glass-inset-a, 0.55) - 0.05));
 }
 
-#ai-translator-button.long-press-active {
-    animation: longPressFade 1s ease;
+/* 长按中：icon 让位，环揭开 */
+#ai-translator-button.long-pressing #ai-translator-icon {
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.18s ease-out, transform 0.25s ease-out;
 }
 
-@keyframes longPressFade {
-    0% {
-        opacity: 1;
-        transform: scale(0.9);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(0.85);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(0.9);
-    }
+/* 环填充期间淡化 halo，让进度环成为主角 */
+#ai-translator-button.long-pressing #ai-translator-halo {
+    opacity: 0.25;
+    transition: opacity 0.2s ease-out;
 }
 
-@keyframes spin {
-    0% {
-        transform: translate(-50%, -50%) rotate(0deg);
-    }
-    100% {
-        transform: translate(-50%, -50%) rotate(360deg);
-    }
-}
-
-#ai-translator-button.long-pressing::before {
-    content: "";
+/* ─── 进度环 · 2.2 均匀墨线，1s 匀速 0→360° ─── */
+#ai-translator-ring {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 40px;
-    height: 40px;
-    margin-top: -20px;
-    margin-left: -20px;
-    /* 暖色调的 spinner - 使用 primary-color */
-    border: 2.5px solid rgba(212, 149, 108, 0.2);
-    border-top-color: rgba(212, 149, 108, 0.8);
-    border-right-color: rgba(212, 149, 108, 0.5);
-    border-radius: 50%;
-    animation: spin 0.9s ease infinite;
+    inset: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
     pointer-events: none;
-    z-index: 10000;
+    z-index: 2;
+    opacity: 0;
+    /* wrapper 走 currentColor，和 halo 同一支墨 */
+    color: rgb(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)));
+    transition: opacity 0.18s ease-out;
+}
+#ai-translator-ring svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+    /* -90° 让起笔落在 12 点位 */
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+#ai-translator-ring circle {
+    fill: none;
+    stroke: currentColor;
+    /* 满 α 的硬墨圈是整组状态里最吵的一处 —— 收到 0.72，再补一层同色
+       drop-shadow，环就读作"边缘被点亮"，而不是"画上去的箍" */
+    opacity: 0.72;
+    filter: drop-shadow(0 0 2px currentColor);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    /* 2π · 47 ≈ 295 */
+    stroke-dasharray: 295;
+    stroke-dashoffset: 295;
+    /* base: 0s — 退出 busy 时瞬间复位到空环，不会可见"倒带"
+       busy 选择器里覆盖为 1s linear → 只有填充方向是动画 */
+    transition: stroke-dashoffset 0s;
 }
 
-/* Dark Mode spinner */
-@media (prefers-color-scheme: dark) {
-    #ai-translator-button.long-pressing::before {
-        border: 2.5px solid rgba(184, 147, 109, 0.25);
-        border-top-color: rgba(184, 147, 109, 0.9);
-        border-right-color: rgba(184, 147, 109, 0.6);
+/* 触发填充：长按期间 dashoffset → 0 */
+#ai-translator-button.long-press-active #ai-translator-ring {
+    opacity: 1;
+    transition: opacity 0.12s ease-out;
+}
+#ai-translator-button.long-press-active #ai-translator-ring circle {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+}
+
+/* ─── 完成勾 · 几何 V，scale 弹入 ─── */
+#ai-translator-check {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.82);
+    /* 和边沿 / 进度环同一支墨 */
+    color: rgb(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)));
+    transition:
+        opacity 0.18s ease-out,
+        transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#ai-translator-check svg {
+    width: 46%;
+    height: 46%;
+    display: block;
+    overflow: visible;
+}
+#ai-translator-check.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ─── 无障碍：尊重用户的动效偏好 ─── */
+@media (prefers-reduced-motion: reduce) {
+    #ai-translator-button,
+    #ai-translator-button::before {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
     }
 }
 
+/* ─── 图标 — T4 Brush 手写笔体 ─── */
 #ai-translator-icon {
     width: 30px;
     height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* 暖色调的文字 - 使用 text-primary */
-    color: #4a3f35;
-    font-size: 24px;
+    /* sumi ink at 60% — JS 采样到暗底时会通过 --ink-color 翻转成 gofun */
+    color: var(--ink-color, rgba(62, 58, 54, 0.6));
+    transition: color 0.2s ease-out, opacity 0.2s ease-out;
+    pointer-events: none;
+    /* 叠在 halo ring 之上（halo 在 z-index 0） */
+    position: relative;
+    z-index: 1;
+    /* 下面几条是给临时 ✓ 文字反馈用的回退样式 */
+    font-size: 22px;
     font-weight: 500;
-    transition: all 0.2s ease;
-    /* 固定字体，确保在所有网页上显示一致 */
+    line-height: 1;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
-    /* 禁止字体继承 */
     font-style: normal !important;
     text-transform: none !important;
     letter-spacing: normal !important;
 }
 
-/* Dark Mode 图标 */
+/* SVG 图标在图标容器内居中，略小于容器——让球体留白更多，logo 更精致
+   父级 flex 居中，所以百分比缩小后会自动居中对齐
+   stroke-width / filter 过渡给激活态「浓墨」用（见下方 .active 块）*/
+#ai-translator-icon svg {
+    width: 70%;
+    height: 70%;
+    display: block;
+    overflow: visible;
+    transition:
+        stroke-width 0.45s ease-out,
+        filter 0.45s ease-out;
+}
+
 @media (prefers-color-scheme: dark) {
     #ai-translator-icon {
-        color: #e8dccf;
+        /* OS 深色回退（当 JS 采样尚未跑起来 / 无法取样时保底） */
+        color: var(--ink-color, rgba(230, 226, 221, 0.75));
     }
 }
 
+/* ─── 激活态图标 · 蘸得更浓一档 ──────────────────────────────────
+   非激活：T stroke 3.4 @ sumi 60%（--ink-color，HSP 按亮度翻转）——
+   这是"内容的墨"，跟着环境走。
+   激活：同一笔 T 蘸濃墨（比 --ink-color 深一档），stroke 3.4 → 3.8，
+   叠 0.4px drop-shadow。
+   形不变、只是墨浓了一档，和边沿 / halo / 进度环同声部。
+   α 固定 0.92，色相走 --fab-accent-rgb，和边沿 / halo / 进度环同一时刻
+   随底色翻 —— 球上任何时候都只有一支墨。 */
 #ai-translator-button.active #ai-translator-icon {
-    /* 成功状态的深绿色 - 使用 success-hover */
-    color: #768966;
-    /* 柔和的文字阴影 */
-    text-shadow: 0 1px 2px rgba(139, 157, 119, 0.3);
-    transform: scale(0.98);
+    color: rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), 0.92);
 }
+/* ===================================================================
+   FAB / Icon
+   =================================================================== */
 
-/* Dark Mode 激活状态图标 */
-@media (prefers-color-scheme: dark) {
-    #ai-translator-button.active #ai-translator-icon {
-        color: #9fad8a;
-        text-shadow: 0 1px 2px rgba(138, 155, 118, 0.4);
-    }
-}
-
-.ai-translator-target {
-    /* 暖色调的高亮 - 使用 primary-light */
-    background-color: rgba(245, 232, 221, 0.5);
-    /* 虚线边框 - 使用 primary-color */
-    border: 1px dotted #d4956c;
-    cursor: pointer;
-}
-
-/* Dark Mode 高亮 */
-@media (prefers-color-scheme: dark) {
-    .ai-translator-target {
-        background-color: rgba(61, 54, 46, 0.6);
-        border-color: #b8936d;
-    }
-}
-
-.ai-translator-loading {
-    position: relative;
-}
-
-.ai-translator-loading::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    /* 纸质感的半透明遮罩 */
-    background-color: rgba(248, 243, 235, 0.8);
-    z-index: 9998;
-}
-
-/* Dark Mode loading */
-@media (prefers-color-scheme: dark) {
-    .ai-translator-loading::after {
-        background-color: rgba(42, 36, 32, 0.85);
-    }
-}
-
-/* Loading Indicator - 翻译等待提示 */
-.ai-translator-loading-indicator {
-    position: absolute;
-    padding: 8px 12px;
-    /* 纸质感背景 - 使用 surface */
-    background: rgba(253, 250, 245, 0.95);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    /* 暖色边框 */
-    border: 2px solid #e8dac8;
-    border-radius: 2px;
-    /* 柔和的纸质阴影 */
-    box-shadow:
-        0 2px 6px rgba(74, 63, 53, 0.08),
-        0 4px 12px rgba(74, 63, 53, 0.04);
-    /* 纸质感文字 - 使用 text-secondary */
-    color: #6b5f52;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    z-index: 10001;
-    pointer-events: none;
-    /* 出现动画 */
-    animation: fadeInUp 0.3s ease forwards;
-}
-
-/* Dark Mode loading indicator */
-@media (prefers-color-scheme: dark) {
-    .ai-translator-loading-indicator {
-        background: rgba(53, 47, 40, 0.95);
-        border-color: #3d3530;
-        box-shadow:
-            0 2px 6px rgba(0, 0, 0, 0.3),
-            0 4px 12px rgba(0, 0, 0, 0.2);
-        color: #c9bdb0;
-    }
-}
-
-@keyframes fadeInUp {
-    0% {
-        opacity: 0;
-        transform: translateY(4px) scale(0.96);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Loading点点动画 */
-.ai-translator-loading-indicator::after {
-    content: '';
-    animation: loadingDots 1.4s infinite;
-}
-
-@keyframes loadingDots {
-    0%, 20% {
-        content: '';
-    }
-    40% {
-        content: '.';
-    }
-    60% {
-        content: '..';
-    }
-    80%, 100% {
-        content: '...';
-    }
-}
-
-/* 翻译后的文本高亮 */
-.ai-translator-highlight {
-    background: linear-gradient(135deg, rgba(234, 228, 216, 0.35) 0%, rgba(245, 241, 232, 0.25) 100%);
-    border-bottom: 2px solid rgba(200, 181, 160, 0.28);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border-radius: 3px;
-    padding: 2px 4px;
-    /* 添加淡入动画 */
-    animation: highlightFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes highlightFadeIn {
-    0% {
-        background: linear-gradient(135deg, rgba(234, 228, 216, 0.5) 0%, rgba(245, 241, 232, 0.4) 100%);
-        border-bottom-color: rgba(200, 181, 160, 0.42);
-        transform: scale(1.02);
-    }
-    100% {
-        background: linear-gradient(135deg, rgba(234, 228, 216, 0.35) 0%, rgba(245, 241, 232, 0.25) 100%);
-        border-bottom-color: rgba(200, 181, 160, 0.28);
-        transform: scale(1);
-    }
-}
-
-.ai-translator-highlight:hover {
-    background: linear-gradient(135deg, rgba(234, 228, 216, 0.45) 0%, rgba(245, 241, 232, 0.35) 100%);
-    border-bottom-color: rgba(200, 181, 160, 0.38);
-    transform: translateY(-1px);
-}
-
-/* 原文状态样式 */
-.ai-translator-original {
-    background: linear-gradient(135deg, rgba(239, 224, 219, 0.32) 0%, rgba(245, 232, 228, 0.22) 100%);
-    border-bottom: 2px solid rgba(210, 180, 170, 0.25);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border-radius: 3px;
-    padding: 2px 4px;
-}
-
-.ai-translator-original:hover {
-    background: linear-gradient(135deg, rgba(239, 224, 219, 0.42) 0%, rgba(245, 232, 228, 0.32) 100%);
-    border-bottom-color: rgba(210, 180, 170, 0.35);
-    transform: translateY(-1px);
-}
-
-/* 可翻译元素标记（当启用时） */
-.ai-translator-target {
-    /* 暖色调的高亮 - 使用 primary-light */
-    background: linear-gradient(135deg, rgba(212, 149, 108, 0.08) 0%, rgba(194, 125, 84, 0.05) 100%);
-    border: 1px dashed rgba(212, 149, 108, 0.35);
-    border-radius: 2px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.ai-translator-target:hover {
-    background: linear-gradient(135deg, rgba(212, 149, 108, 0.12) 0%, rgba(194, 125, 84, 0.08) 100%);
-    border-color: rgba(212, 149, 108, 0.5);
-}
-
-/* Dark Mode 可翻译元素 */
-@media (prefers-color-scheme: dark) {
-    .ai-translator-target {
-        background: linear-gradient(135deg, rgba(184, 147, 109, 0.1) 0%, rgba(160, 125, 90, 0.06) 100%);
-        border-color: rgba(184, 147, 109, 0.4);
-    }
-
-    .ai-translator-target:hover {
-        background: linear-gradient(135deg, rgba(184, 147, 109, 0.15) 0%, rgba(160, 125, 90, 0.1) 100%);
-        border-color: rgba(184, 147, 109, 0.55);
-    }
+#ai-translator-button.active #ai-translator-icon svg {
+    stroke-width: 3.8;
+    filter: drop-shadow(0 0 0.4px currentColor);
 }

@@ -1,17 +1,20 @@
 {
     "manifest_version": 3,
     "name": "Pointer",
-    "version": "1.0",
+    "version": "1.0.0",
     "description": "Translate selected text on webpages using AI API",
     "permissions": [
-        "storage",
-        "activeTab",
-        "scripting"
+        "storage"
+    ],
+    "optional_host_permissions": [
+        "https://*/*",
+        "http://*/*"
     ],
     "action": {
         "default_popup": "popup.html",
         "default_icon": {
             "16": "images/icon16.png",
+            "32": "images/icon32.png",
             "48": "images/icon48.png",
             "128": "images/icon128.png"
         }
@@ -33,7 +36,9 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "content.css"
+                "theme.css",
+                "content.css",
+                "content-page.css"
             ],
             "matches": [
                 "<all_urls>"
@@ -45,6 +50,7 @@
     },
     "icons": {
         "16": "images/icon16.png",
+        "32": "images/icon32.png",
         "48": "images/icon48.png",
         "128": "images/icon128.png"
     }
