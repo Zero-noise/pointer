@@ -30,6 +30,7 @@
     const MODEL_CACHE_BINDING_LOCAL_KEY = 'availableModelsBinding';
     const MODEL_CACHE_KEYS = ['availableModels', MODEL_CACHE_BINDING_LOCAL_KEY];
     const CREDENTIAL_BINDING_LOCAL_KEY = 'credentialBinding';
+    const PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY = 'privateLanHttpAuthBinding';
     // Compatibility keys read only during secure local-state preparation.
     // Verification belongs on the same device as the API key; otherwise a synced
     // endpoint could become trusted without being verified on this device.
@@ -322,6 +323,18 @@
         }
     }
 
+    function isPrivateLanHttpBaseUrl(baseUrl) {
+        try {
+            const normalizedBaseUrl = normalizeAndValidateBaseUrl(baseUrl);
+            const parsed = new URL(normalizedBaseUrl);
+            return parsed.protocol === 'http:' &&
+                isPrivateNetworkHostname(parsed.hostname) &&
+                !isLoopbackHostname(parsed.hostname);
+        } catch (_) {
+            return false;
+        }
+    }
+
     // ——— Where the HTTP restriction actually lives ———
     //
     // manifest.json declares `http://*/*` under optional_host_permissions. That
@@ -540,6 +553,140 @@
         return setLocal({ apiKey });
     }
 
+    function createPrivateLanHttpAuthGeneration() {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes)
+            .map((byte) => byte.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    async function getPrivateLanHttpAuthBinding() {
+        const result = await getLocal([PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY]);
+        const binding = result[PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY];
+        if (!binding || typeof binding !== 'object') {
+            return null;
+        }
+        if (typeof binding.baseUrl !== 'string' ||
+            typeof binding.apiKeyHash !== 'string' ||
+            typeof binding.generation !== 'string' ||
+            !/^[a-f0-9]{32}$/.test(binding.generation)) {
+            return null;
+        }
+        return binding;
+    }
+
+    async function setPrivateLanHttpAuthAllowed(apiKey, baseUrl, allowed) {
+        if (!allowed) {
+            await removeLocal([PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY]);
+            return null;
+        }
+
+        const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+        const normalizedBaseUrl = normalizeAndValidateBaseUrl(baseUrl);
+        if (!normalizedApiKey || !isPrivateLanHttpBaseUrl(normalizedBaseUrl)) {
+            throw new Error('Private LAN HTTP authentication requires a private HTTP endpoint and API key');
+        }
+
+        const binding = {
+            baseUrl: normalizedBaseUrl,
+            apiKeyHash: await sha256Hex(normalizedApiKey),
+            generation: createPrivateLanHttpAuthGeneration()
+        };
+        await setLocal({ [PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY]: binding });
+        return binding.generation;
+    }
+
+    async function getPrivateLanHttpAuthGeneration(apiKey, baseUrl) {
+        const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+        if (!normalizedApiKey || !isPrivateLanHttpBaseUrl(baseUrl)) {
+            return null;
+        }
+
+        const normalizedBaseUrl = normalizeAndValidateBaseUrl(baseUrl);
+        const binding = await getPrivateLanHttpAuthBinding();
+        if (!binding || binding.baseUrl !== normalizedBaseUrl) {
+            return null;
+        }
+        const apiKeyHash = await sha256Hex(normalizedApiKey);
+        return binding.apiKeyHash === apiKeyHash ? binding.generation : null;
+    }
+
+    async function resolveApiKeyForRequest(
+        apiKey,
+        baseUrl,
+        expectedPrivateLanAuthGeneration = null,
+        expectedCredentialBinding = null
+    ) {
+        const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+        const normalizedBaseUrl = normalizeAndValidateBaseUrl(baseUrl);
+
+        // Translation work can wait in the global queue. Re-read the verified
+        // binding when that work actually starts so editing/clearing credentials
+        // revokes queued requests for HTTPS, loopback, and LAN endpoints alike.
+        if (expectedCredentialBinding) {
+            const [currentBinding, currentSettings] = await Promise.all([
+                getCredentialBinding(),
+                getSync(['baseUrl'])
+            ]);
+            let currentBaseUrl = '';
+            try {
+                currentBaseUrl = normalizeAndValidateBaseUrl(currentSettings.baseUrl);
+            } catch (_) {
+                // Invalid or missing current settings fail the comparison below.
+            }
+            const bindingStillCurrent = Boolean(currentBinding) &&
+                currentBinding.apiKeyHash === expectedCredentialBinding.apiKeyHash &&
+                currentBinding.baseUrl === expectedCredentialBinding.baseUrl &&
+                currentBinding.verifiedAt === expectedCredentialBinding.verifiedAt &&
+                currentBinding.privateLanHttpAuthGeneration ===
+                    expectedCredentialBinding.privateLanHttpAuthGeneration &&
+                expectedCredentialBinding.baseUrl === normalizedBaseUrl &&
+                currentBaseUrl === normalizedBaseUrl;
+            if (!bindingStillCurrent) {
+                const error = new Error('API credentials changed before the request started');
+                error.code = 'AUTHORIZATION_REVOKED';
+                throw error;
+            }
+        }
+
+        if (!normalizedApiKey || !isPrivateLanHttpBaseUrl(normalizedBaseUrl)) {
+            return normalizedApiKey;
+        }
+
+        // Non-loopback private HTTP is anonymous by default. A key is released
+        // only for the exact local endpoint/key generation the user enabled.
+        if (!expectedPrivateLanAuthGeneration) {
+            return '';
+        }
+
+        const currentGeneration = await getPrivateLanHttpAuthGeneration(
+            normalizedApiKey,
+            normalizedBaseUrl
+        );
+        if (currentGeneration !== expectedPrivateLanAuthGeneration) {
+            const error = new Error('Private LAN HTTP authentication changed before the request started');
+            error.code = 'AUTHORIZATION_REVOKED';
+            throw error;
+        }
+        return normalizedApiKey;
+    }
+
+    function credentialBindingMatchesPrivateLanAuth(
+        binding,
+        apiKey,
+        baseUrl,
+        currentPrivateLanAuthGeneration
+    ) {
+        const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+        if (!normalizedApiKey || !isPrivateLanHttpBaseUrl(baseUrl)) {
+            return true;
+        }
+        return Boolean(binding) &&
+            Object.prototype.hasOwnProperty.call(binding, 'privateLanHttpAuthGeneration') &&
+            binding.privateLanHttpAuthGeneration === currentPrivateLanAuthGeneration;
+    }
+
     async function getCredentialBinding() {
         const result = await getLocal([CREDENTIAL_BINDING_LOCAL_KEY]);
         const binding = result[CREDENTIAL_BINDING_LOCAL_KEY];
@@ -560,10 +707,15 @@
         if (!normalizedApiKey && isApiKeyRequired(normalizedBaseUrl)) {
             throw new Error('API key is required for remote API servers');
         }
+        const privateLanHttpAuthGeneration = await getPrivateLanHttpAuthGeneration(
+            normalizedApiKey,
+            normalizedBaseUrl
+        );
         const binding = {
             apiKeyHash: await sha256Hex(normalizedApiKey),
             baseUrl: normalizedBaseUrl,
-            verifiedAt
+            verifiedAt,
+            privateLanHttpAuthGeneration
         };
 
         // Store the key and its verified binding in one local write so the
@@ -580,7 +732,8 @@
         apiKey,
         baseUrl,
         availableModels,
-        verifiedAt = new Date().toISOString()
+        verifiedAt = new Date().toISOString(),
+        expectedPrivateLanHttpAuthGeneration
     ) {
         const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
         if (!Array.isArray(availableModels)) {
@@ -591,10 +744,19 @@
         if (!normalizedApiKey && isApiKeyRequired(normalizedBaseUrl)) {
             throw new Error('API key is required for remote API servers');
         }
+        const privateLanHttpAuthGeneration = await getPrivateLanHttpAuthGeneration(
+            normalizedApiKey,
+            normalizedBaseUrl
+        );
+        if (expectedPrivateLanHttpAuthGeneration !== undefined &&
+            privateLanHttpAuthGeneration !== expectedPrivateLanHttpAuthGeneration) {
+            throw new Error('Private LAN HTTP authentication changed during verification');
+        }
         const binding = {
             apiKeyHash: await sha256Hex(normalizedApiKey),
             baseUrl: normalizedBaseUrl,
-            verifiedAt
+            verifiedAt,
+            privateLanHttpAuthGeneration
         };
 
         // One local write keeps credentials, their verification record, and
@@ -606,7 +768,8 @@
             availableModels,
             [MODEL_CACHE_BINDING_LOCAL_KEY]: {
                 apiKeyHash: binding.apiKeyHash,
-                baseUrl: binding.baseUrl
+                baseUrl: binding.baseUrl,
+                privateLanHttpAuthGeneration: binding.privateLanHttpAuthGeneration
             }
         });
         await removeSync(VERIFICATION_SYNC_KEYS);
@@ -615,6 +778,14 @@
 
     async function clearCredentialBinding() {
         return removeLocal([CREDENTIAL_BINDING_LOCAL_KEY]);
+    }
+
+    async function invalidateCredentialGeneration() {
+        return removeLocal([
+            CREDENTIAL_BINDING_LOCAL_KEY,
+            ...MODEL_CACHE_KEYS,
+            PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY
+        ]);
     }
 
     async function restrictLocalStorageAccess() {
@@ -722,7 +893,9 @@
             credentialBinding &&
             cacheBinding &&
             cacheBinding.apiKeyHash === credentialBinding.apiKeyHash &&
-            cacheBinding.baseUrl === credentialBinding.baseUrl
+            cacheBinding.baseUrl === credentialBinding.baseUrl &&
+            cacheBinding.privateLanHttpAuthGeneration ===
+                credentialBinding.privateLanHttpAuthGeneration
         );
 
         const legacy = await get('sync', ['availableModels']);
@@ -751,13 +924,20 @@
             migrateAvailableModelsToLocal(credentialBinding),
             getApiKey()
         ]);
+        const privateLanHttpAuthGeneration = await getPrivateLanHttpAuthGeneration(
+            apiKey,
+            syncResult.baseUrl
+        );
         return {
             ...syncResult,
             apiKey,
             availableModels,
+            privateLanHttpAuthGeneration,
             lastVerified: credentialBinding?.verifiedAt,
             lastVerifiedApiKeyHash: credentialBinding?.apiKeyHash,
-            lastVerifiedBaseUrl: credentialBinding?.baseUrl
+            lastVerifiedBaseUrl: credentialBinding?.baseUrl,
+            lastVerifiedPrivateLanHttpAuthGeneration:
+                credentialBinding?.privateLanHttpAuthGeneration
         };
     }
 
@@ -766,6 +946,7 @@
         MODEL_CACHE_KEYS,
         MODEL_CACHE_BINDING_LOCAL_KEY,
         CREDENTIAL_BINDING_LOCAL_KEY,
+        PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY,
         SYNC_KEYS,
         LEGACY_SYNC_KEYS,
         VERIFICATION_SYNC_KEYS,
@@ -780,15 +961,22 @@
         quoteRemoteMessage,
         readResponseTextWithLimit,
         isApiKeyRequired,
+        isPrivateLanHttpBaseUrl,
         normalizeAndValidateBaseUrl,
         getHostPermissionPattern,
         getLegacyHostPermissionPattern,
         getApiKey,
         setApiKey,
+        getPrivateLanHttpAuthBinding,
+        setPrivateLanHttpAuthAllowed,
+        getPrivateLanHttpAuthGeneration,
+        resolveApiKeyForRequest,
+        credentialBindingMatchesPrivateLanAuth,
         getCredentialBinding,
         setVerifiedCredentials,
         setVerifiedCredentialsAndModels,
         clearCredentialBinding,
+        invalidateCredentialGeneration,
         restrictLocalStorageAccess,
         getModifierName,
         formatShortcutChord,

@@ -24,6 +24,21 @@ const workerImportableSources = {
     'i18n.js': i18nSource
 };
 
+function loadFetchAvailableModelsForTest(context) {
+    const match = optionsSource.match(
+        /    async function fetchAvailableModels\([\s\S]*?\n    \}\n\n\}\);\s*$/
+    );
+    assert.ok(match, 'could not extract fetchAvailableModels from options.js');
+    const functionSource = match[0]
+        .replace(/\n\n\}\);\s*$/, '')
+        .replace(/^ {4}/gm, '')
+        .replace(
+            'async function fetchAvailableModels',
+            'async function fetchAvailableModelsForTest'
+        );
+    vm.runInContext(functionSource, context, { filename: 'options-fetch-test.js' });
+}
+
 function createStorageArea(initialState, accessLog) {
     const state = { ...initialState };
     return {
@@ -102,6 +117,12 @@ async function createBackgroundHarness() {
                     headers: { 'content-type': 'application/json' }
                 });
             }
+            if (String(url).endsWith('/models')) {
+                return new Response(JSON.stringify({ data: [{ id: 'test-model' }] }), {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' }
+                });
+            }
             return new Response(JSON.stringify({
                 choices: [{ message: { content: 'translated' } }]
             }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -151,6 +172,7 @@ async function createBackgroundHarness() {
     };
 
     vm.runInContext(backgroundSource, context, { filename: 'background.js' });
+    loadFetchAvailableModelsForTest(context);
     assert.equal(messageListeners.length, 1);
     await vm.runInContext('waitForSecureLocalState()', context);
 
@@ -256,6 +278,130 @@ async function run() {
         );
     }
 
+    const privateLanAuthUrl = 'http://192.168.50.23:1234/v1';
+    assert.equal(vm.runInContext(
+        `PointerSettings.isPrivateLanHttpBaseUrl(${JSON.stringify(privateLanAuthUrl)})`,
+        harness.context
+    ), true);
+    assert.equal(vm.runInContext(
+        "PointerSettings.isPrivateLanHttpBaseUrl('http://localhost:11434/v1')",
+        harness.context
+    ), false);
+    assert.equal(vm.runInContext(
+        "PointerSettings.isPrivateLanHttpBaseUrl('https://192.168.50.23/v1')",
+        harness.context
+    ), false);
+
+    // Private-LAN HTTP is anonymous by default even when a key is filled in.
+    // HTTPS and loopback retain their existing key behaviour.
+    assert.equal(await vm.runInContext(
+        `PointerSettings.resolveApiKeyForRequest('team-key', ${JSON.stringify(privateLanAuthUrl)})`,
+        harness.context
+    ), '');
+    assert.equal(await vm.runInContext(
+        "PointerSettings.resolveApiKeyForRequest('team-key', 'http://localhost:11434/v1')",
+        harness.context
+    ), 'team-key');
+    assert.equal(await vm.runInContext(
+        "PointerSettings.resolveApiKeyForRequest('team-key', 'https://api.example.test/v1')",
+        harness.context
+    ), 'team-key');
+
+    const firstLanAuthGeneration = await vm.runInContext(
+        `PointerSettings.setPrivateLanHttpAuthAllowed(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)}, true)`,
+        harness.context
+    );
+    assert.match(firstLanAuthGeneration, /^[a-f0-9]{32}$/);
+    assert.equal(await vm.runInContext(
+        `PointerSettings.getPrivateLanHttpAuthGeneration(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)})`,
+        harness.context
+    ), firstLanAuthGeneration);
+    assert.equal(await vm.runInContext(
+        `PointerSettings.resolveApiKeyForRequest(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)}, ` +
+        `${JSON.stringify(firstLanAuthGeneration)})`,
+        harness.context
+    ), 'team-key');
+    await assert.rejects(
+        vm.runInContext(
+            `PointerSettings.setVerifiedCredentialsAndModels(` +
+            `'team-key', ${JSON.stringify(privateLanAuthUrl)}, [{ id: 'model' }], ` +
+            `'2026-08-30T00:00:00.000Z', 'stale-generation')`,
+            harness.context
+        ),
+        /changed during verification/
+    );
+    assert.equal(await vm.runInContext(
+        `PointerSettings.getPrivateLanHttpAuthGeneration(` +
+        `'different-key', ${JSON.stringify(privateLanAuthUrl)})`,
+        harness.context
+    ), null);
+    assert.equal(await vm.runInContext(
+        "PointerSettings.getPrivateLanHttpAuthGeneration(" +
+        "'team-key', 'http://192.168.50.24:1234/v1')",
+        harness.context
+    ), null);
+
+    await vm.runInContext(
+        `PointerSettings.setPrivateLanHttpAuthAllowed(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)}, false)`,
+        harness.context
+    );
+    await assert.rejects(
+        vm.runInContext(
+            `PointerSettings.resolveApiKeyForRequest(` +
+            `'team-key', ${JSON.stringify(privateLanAuthUrl)}, ` +
+            `${JSON.stringify(firstLanAuthGeneration)})`,
+            harness.context
+        ),
+        (error) => error.code === 'AUTHORIZATION_REVOKED'
+    );
+
+    const secondLanAuthGeneration = await vm.runInContext(
+        `PointerSettings.setPrivateLanHttpAuthAllowed(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)}, true)`,
+        harness.context
+    );
+    assert.notEqual(secondLanAuthGeneration, firstLanAuthGeneration);
+    await assert.rejects(
+        vm.runInContext(
+            `PointerSettings.resolveApiKeyForRequest(` +
+            `'team-key', ${JSON.stringify(privateLanAuthUrl)}, ` +
+            `${JSON.stringify(firstLanAuthGeneration)})`,
+            harness.context
+        ),
+        (error) => error.code === 'AUTHORIZATION_REVOKED'
+    );
+    assert.equal(await vm.runInContext(
+        `PointerSettings.resolveApiKeyForRequest(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)}, ` +
+        `${JSON.stringify(secondLanAuthGeneration)})`,
+        harness.context
+    ), 'team-key');
+    await vm.runInContext(
+        `PointerSettings.setPrivateLanHttpAuthAllowed(` +
+        `'team-key', ${JSON.stringify(privateLanAuthUrl)}, false)`,
+        harness.context
+    );
+    await assert.rejects(
+        vm.runInContext(
+            "PointerSettings.setPrivateLanHttpAuthAllowed(" +
+            "'team-key', 'http://localhost:11434/v1', true)",
+            harness.context
+        ),
+        /requires a private HTTP endpoint/
+    );
+    await assert.rejects(
+        vm.runInContext(
+            "PointerSettings.setPrivateLanHttpAuthAllowed(" +
+            "'team-key', 'http://8.8.8.8/v1', true)",
+            harness.context
+        ),
+        /must use HTTPS/
+    );
+
     assert.equal(
         vm.runInContext("PointerSettings.getHostPermissionPattern('https://api.example.test:8443/v1')", harness.context),
         'https://api.example.test:8443/*'
@@ -359,12 +505,48 @@ async function run() {
     const mismatch = await harness.dispatch({ action: 'translate', text: ['hello'], targetLang: 'zh' }, 20);
     assert.equal(mismatch.response.errorCode, 'API_VERIFICATION_REQUIRED');
     assert.equal(harness.fetchCount, beforeBindingMismatch);
+    harness.context.bindingBeforeSyncedEndpointChange = {
+        ...harness.localArea.state.credentialBinding
+    };
+    await assert.rejects(
+        vm.runInContext(
+            "translateText('hello', 'zh', 'test-key', " +
+            "'https://api.example.test/v1', 'test-model', null, " +
+            "bindingBeforeSyncedEndpointChange)",
+            harness.context
+        ),
+        (error) => error.code === 'AUTHORIZATION_REVOKED'
+    );
+    assert.equal(harness.fetchCount, beforeBindingMismatch);
     harness.syncArea.state.baseUrl = 'https://api.example.test/v1';
 
     harness.setHostPermission(false);
     const missingPermission = await harness.dispatch({ action: 'translate', text: ['hello'], targetLang: 'zh' }, 21);
     assert.equal(missingPermission.response.errorCode, 'HOST_PERMISSION_REQUIRED');
     harness.setHostPermission(true);
+
+    // A translation that was accepted before the user edited or cleared the
+    // credentials must re-check the verified binding when its queue slot opens.
+    // This covers HTTPS/loopback as well as the private-LAN generation below.
+    harness.context.queuedCredentialBinding = {
+        ...harness.localArea.state.credentialBinding
+    };
+    await vm.runInContext('PointerSettings.clearCredentialBinding()', harness.context);
+    const beforeRevokedQueuedRequest = harness.fetchCount;
+    await assert.rejects(
+        vm.runInContext(
+            "translateText('hello', 'zh', 'test-key', " +
+            "'https://api.example.test/v1', 'test-model', null, queuedCredentialBinding)",
+            harness.context
+        ),
+        (error) => error.code === 'AUTHORIZATION_REVOKED'
+    );
+    assert.equal(harness.fetchCount, beforeRevokedQueuedRequest);
+    await vm.runInContext(
+        "PointerSettings.setVerifiedCredentials(" +
+        "'test-key', 'https://api.example.test/v1', '2026-08-23T00:00:01.000Z')",
+        harness.context
+    );
 
     vm.runInContext('consumeTranslationRateLimit(99, 40, 1000)', harness.context);
     vm.runInContext('consumeTranslationRateLimit(99, 40, 1000)', harness.context);
@@ -454,6 +636,95 @@ async function run() {
         Object.prototype.hasOwnProperty.call(harness.lastFetchOptions.headers, 'Authorization'),
         false
     );
+
+    // A filled key is still withheld from non-loopback private HTTP until the
+    // exact endpoint/key switch is enabled and the pair is verified again.
+    await vm.runInContext(
+        `PointerSettings.setPrivateLanHttpAuthAllowed(` +
+        `'lan-team-key', ${JSON.stringify(localBaseUrl)}, false)`,
+        harness.context
+    );
+    await vm.runInContext(
+        `PointerSettings.setVerifiedCredentialsAndModels(` +
+        `'lan-team-key', ${JSON.stringify(localBaseUrl)}, [{ id: 'local-model' }], ` +
+        `'2026-08-30T00:00:01.000Z')`,
+        harness.context
+    );
+    const privateOffModels = await vm.runInContext(
+        `fetchAvailableModelsForTest(` +
+        `'lan-team-key', ${JSON.stringify(localBaseUrl)}, null)`,
+        harness.context
+    );
+    assert.equal(privateOffModels[0].id, 'test-model');
+    assert.equal(
+        Object.prototype.hasOwnProperty.call(harness.lastFetchOptions.headers, 'Authorization'),
+        false
+    );
+    const privateOffTranslation = await harness.dispatch(
+        { action: 'translate', text: ['private anonymous'], targetLang: 'zh' },
+        23
+    );
+    assert.deepEqual(Array.from(privateOffTranslation.response.translations), ['translated']);
+    assert.equal(
+        Object.prototype.hasOwnProperty.call(harness.lastFetchOptions.headers, 'Authorization'),
+        false
+    );
+
+    await vm.runInContext('PointerSettings.invalidateCredentialGeneration()', harness.context);
+    const enabledLanAuthGeneration = await vm.runInContext(
+        `PointerSettings.setPrivateLanHttpAuthAllowed(` +
+        `'lan-team-key', ${JSON.stringify(localBaseUrl)}, true)`,
+        harness.context
+    );
+    await vm.runInContext(
+        `PointerSettings.setVerifiedCredentialsAndModels(` +
+        `'lan-team-key', ${JSON.stringify(localBaseUrl)}, [{ id: 'local-model' }], ` +
+        `'2026-08-30T00:00:02.000Z')`,
+        harness.context
+    );
+    const privateAuthenticatedModels = await vm.runInContext(
+        `fetchAvailableModelsForTest(` +
+        `'lan-team-key', ${JSON.stringify(localBaseUrl)}, ` +
+        `${JSON.stringify(enabledLanAuthGeneration)})`,
+        harness.context
+    );
+    assert.equal(privateAuthenticatedModels[0].id, 'test-model');
+    assert.equal(
+        harness.lastFetchOptions.headers.Authorization,
+        'Bearer lan-team-key'
+    );
+    const privateAuthenticatedTranslation = await harness.dispatch(
+        { action: 'translate', text: ['private authenticated'], targetLang: 'zh' },
+        24
+    );
+    assert.deepEqual(
+        Array.from(privateAuthenticatedTranslation.response.translations),
+        ['translated']
+    );
+    assert.equal(
+        harness.lastFetchOptions.headers.Authorization,
+        'Bearer lan-team-key'
+    );
+
+    harness.context.queuedLanCredentialBinding = {
+        ...harness.localArea.state.credentialBinding
+    };
+    await vm.runInContext('PointerSettings.invalidateCredentialGeneration()', harness.context);
+    assert.equal(harness.localArea.state.credentialBinding, undefined);
+    assert.equal(harness.localArea.state.privateLanHttpAuthBinding, undefined);
+    assert.equal(harness.localArea.state.availableModels, undefined);
+    assert.equal(harness.localArea.state.availableModelsBinding, undefined);
+    const beforeRevokedLanRequest = harness.fetchCount;
+    await assert.rejects(
+        vm.runInContext(
+            `translateText('hello', 'zh', 'lan-team-key', ` +
+            `${JSON.stringify(localBaseUrl)}, 'local-model', ` +
+            `${JSON.stringify(enabledLanAuthGeneration)}, queuedLanCredentialBinding)`,
+            harness.context
+        ),
+        (error) => error.code === 'AUTHORIZATION_REVOKED'
+    );
+    assert.equal(harness.fetchCount, beforeRevokedLanRequest);
 
     const beforeEmptyRemoteKey = harness.fetchCount;
     await assert.rejects(
@@ -573,6 +844,9 @@ async function run() {
     assert.doesNotMatch(backgroundSource, /await response\.text\(\)/);
     assert.doesNotMatch(optionsSource, /await response\.text\(\)/);
     assert.match(optionsSource, /Settings\.setVerifiedCredentialsAndModels\(/);
+    assert.match(optionsSource, /Settings\.resolveApiKeyForRequest\(/);
+    assert.match(optionsSource, /Settings\.setPrivateLanHttpAuthAllowed\(/);
+    assert.match(optionsSource, /Settings\.invalidateCredentialGeneration\(/);
     assert.match(optionsSource, /chrome\.permissions\.remove\(/);
     assert.match(popupSource, /window\.addEventListener\('pagehide', flushCustomLanguageSave\)/);
     assert.match(popupSource, /document\.visibilityState === 'hidden'/);
@@ -582,6 +856,9 @@ async function run() {
     assert.doesNotMatch(popupSource, /chrome\.tabs\./);
     assert.doesNotMatch(popupHtml, /id="targetLang"|popup-shim\.js/);
     assert.doesNotMatch(optionsHtml, /options-shim\.js/);
+    assert.match(optionsHtml, /id="privateLanHttpAuthRow" hidden/);
+    assert.match(optionsHtml, /id="privateLanHttpAuth"[^>]*class="mtoggle-input"/);
+    assert.match(optionsHtml, /aria-labelledby="privateLanHttpAuthLabel"/);
     assert.match(popupHtml, /role="combobox"/);
     assert.match(popupHtml, /aria-controls="langLens"/);
     const languageOptionTags = popupHtml.match(/<div class="lens-item"[^>]*>/g) || [];

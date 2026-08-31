@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const shortcutNotesRow = document.getElementById('shortcutNotesRow');
     const shortcutSiteList = document.getElementById('shortcutSiteList');
     const clearCredentialsButton = document.getElementById('clearCredentialsButton');
+    const privateLanHttpAuthRow = document.getElementById('privateLanHttpAuthRow');
+    const privateLanHttpAuthCheckbox = document.getElementById('privateLanHttpAuth');
+    const baseUrlWrap = document.getElementById('baseUrlWrap');
+    const baseUrlPresetBtn = document.getElementById('baseUrlPresetBtn');
+    const baseUrlPresetDropdown = document.getElementById('baseUrlPresetDropdown');
     const navLinks = document.querySelectorAll('.nav-link');
 
     function syncSliderProgress(slider) {
@@ -46,8 +51,113 @@ document.addEventListener('DOMContentLoaded', function () {
     let selectedModelIndex = -1;
     let lastVerifiedApiKey = null;
     let lastVerifiedBaseUrl = null;
+    let privateLanHttpAuthGeneration = null;
+    let lastVerifiedPrivateLanHttpAuthGeneration;
     let hasCachedModelList = false;
     let isCurrentCredentialsVerified = false;
+    let credentialGenerationIsInvalidated = true;
+    let credentialMutationPromise = Promise.resolve();
+    let credentialMutationError = null;
+    let credentialControlsBusy = true;
+    let verifyStatusHideTimer = null;
+
+    function setCredentialControlsBusy(busy) {
+        credentialControlsBusy = busy;
+        for (const control of [
+            apiKeyInput,
+            baseUrlInput,
+            baseUrlPresetBtn,
+            privateLanHttpAuthCheckbox,
+            verifyButton,
+            clearCredentialsButton
+        ]) {
+            if (control) control.disabled = busy;
+        }
+        if (privateLanHttpAuthRow) {
+            privateLanHttpAuthRow.setAttribute('aria-busy', String(busy));
+        }
+    }
+
+    function beginCredentialOperation() {
+        if (credentialControlsBusy) return false;
+        setCredentialControlsBusy(true);
+        return true;
+    }
+
+    function queueCredentialMutation(operation) {
+        const nextMutation = credentialMutationPromise
+            .then(async () => {
+                try {
+                    const result = await operation();
+                    credentialMutationError = null;
+                    return result;
+                } catch (error) {
+                    credentialMutationError = error;
+                    throw error;
+                }
+            });
+        // Keep the queue tail usable after a failed storage operation while
+        // returning the real rejection to the caller that initiated it.
+        credentialMutationPromise = nextMutation.catch(() => { });
+        return nextMutation;
+    }
+
+    async function waitForCredentialMutations() {
+        await credentialMutationPromise;
+        if (credentialMutationError) {
+            throw credentialMutationError;
+        }
+    }
+
+    // Prevent edits until local credential migration and state hydration finish.
+    setCredentialControlsBusy(true);
+
+    function isPrivateLanHttpAuthContext() {
+        return Boolean(
+            apiKeyInput.value.trim() &&
+            Settings.isPrivateLanHttpBaseUrl(sanitizeBaseUrl(baseUrlInput.value))
+        );
+    }
+
+    function updatePrivateLanHttpAuthVisibility() {
+        if (!privateLanHttpAuthRow || !privateLanHttpAuthCheckbox) return;
+        const visible = isPrivateLanHttpAuthContext();
+        privateLanHttpAuthRow.hidden = !visible;
+        privateLanHttpAuthCheckbox.checked = visible && Boolean(privateLanHttpAuthGeneration);
+    }
+
+    function privateLanHttpAuthMatchesVerification(apiKey, baseUrl) {
+        if (!apiKey || !Settings.isPrivateLanHttpBaseUrl(baseUrl)) {
+            return true;
+        }
+        return lastVerifiedPrivateLanHttpAuthGeneration !== undefined &&
+            lastVerifiedPrivateLanHttpAuthGeneration === privateLanHttpAuthGeneration;
+    }
+
+    function clearVerifiedCredentialState() {
+        lastVerifiedPrivateLanHttpAuthGeneration = undefined;
+        hasCachedModelList = false;
+        isCurrentCredentialsVerified = false;
+    }
+
+    function invalidateCredentialsForEdit() {
+        hideVerifyStatus();
+        const needsInvalidation = !credentialGenerationIsInvalidated;
+        privateLanHttpAuthGeneration = null;
+        clearVerifiedCredentialState();
+        updatePrivateLanHttpAuthVisibility();
+
+        if (needsInvalidation) {
+            credentialGenerationIsInvalidated = true;
+            void queueCredentialMutation(() => Settings.invalidateCredentialGeneration())
+                .catch((error) => {
+                    credentialGenerationIsInvalidated = false;
+                    updatePrivateLanHttpAuthVisibility();
+                    console.error('Failed to invalidate the previous API verification:', error.message);
+                    showVerifyStatus(`Failed to invalidate previous API verification: ${error.message}`, 'error');
+                });
+        }
+    }
 
     // Model search and selection functions
     function updateModelDropdown(models) {
@@ -175,7 +285,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // a valid verified value for local/LAN servers that do not use auth.
         const apiMatches = lastVerifiedApiKey !== null && currentApiKey === lastVerifiedApiKey;
         const baseMatches = !!lastVerifiedBaseUrl && currentBaseUrl === lastVerifiedBaseUrl;
-        const credentialsMatch = apiMatches && baseMatches;
+        const authPolicyMatches = privateLanHttpAuthMatchesVerification(
+            currentApiKey,
+            currentBaseUrl
+        );
+        const credentialsMatch = apiMatches && baseMatches && authPolicyMatches;
 
         if (hasCachedModelList && credentialsMatch && isCurrentCredentialsVerified) {
             enableModelSelection();
@@ -389,6 +503,11 @@ document.addEventListener('DOMContentLoaded', function () {
             // Default OpenAI URL
             baseUrlInput.value = 'https://api.openai.com/v1';
         }
+        privateLanHttpAuthGeneration = result.privateLanHttpAuthGeneration || null;
+        lastVerifiedPrivateLanHttpAuthGeneration =
+            result.lastVerifiedPrivateLanHttpAuthGeneration;
+        credentialGenerationIsInvalidated = !result.lastVerified;
+        updatePrivateLanHttpAuthVisibility();
 
         // Only restore the previously selected model value if available
         if (result.model) {
@@ -438,8 +557,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const hasVerificationMetadata = !!result.lastVerified &&
             lastVerifiedApiKey !== null &&
             !!lastVerifiedBaseUrl;
+        const authPolicyMatches = privateLanHttpAuthMatchesVerification(
+            storedApiKey,
+            storedBaseUrl
+        );
 
-        if (hasCachedModelList && hasVerificationMetadata && storedApiKey === lastVerifiedApiKey && storedBaseUrl === lastVerifiedBaseUrl) {
+        if (hasCachedModelList && hasVerificationMetadata && authPolicyMatches &&
+            storedApiKey === lastVerifiedApiKey && storedBaseUrl === lastVerifiedBaseUrl) {
             isCurrentCredentialsVerified = true;
         } else {
             isCurrentCredentialsVerified = false;
@@ -501,12 +625,15 @@ document.addEventListener('DOMContentLoaded', function () {
         initializeCustomSelects();
 
         // Update model section visibility based on stored credentials and models
+        updatePrivateLanHttpAuthVisibility();
         handleCredentialChange();
     }).catch((error) => {
         // 初始化链中任何一步（迁移、storage 读取、哈希）失败都不能让
         // 页面无声地停在空白状态
         console.error('Failed to initialize options page:', error);
         showVerifyStatus(`Failed to load settings: ${error.message}. Please reopen this page.`, 'error');
+    }).finally(() => {
+        setCredentialControlsBusy(false);
     });
 
     // Update size value display live while dragging; persist only on release
@@ -770,14 +897,71 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     apiKeyInput.addEventListener('input', function () {
-        isCurrentCredentialsVerified = false;
+        invalidateCredentialsForEdit();
         handleCredentialChange();
     });
     baseUrlInput.addEventListener('input', function () {
-        isCurrentCredentialsVerified = false;
+        invalidateCredentialsForEdit();
         handleCredentialChange();
         updatePresetMatch();
     });
+
+    if (privateLanHttpAuthCheckbox) {
+        privateLanHttpAuthCheckbox.addEventListener('change', async function () {
+            if (!beginCredentialOperation()) {
+                updatePrivateLanHttpAuthVisibility();
+                return;
+            }
+            const shouldEnable = this.checked;
+            hideVerifyStatus();
+            const apiKey = apiKeyInput.value.trim();
+            const baseUrl = sanitizeBaseUrl(baseUrlInput.value);
+            const previousState = {
+                generation: privateLanHttpAuthGeneration,
+                lastVerifiedApiKey,
+                lastVerifiedBaseUrl,
+                lastVerifiedPrivateLanHttpAuthGeneration,
+                hasCachedModelList,
+                isCurrentCredentialsVerified,
+                credentialGenerationIsInvalidated
+            };
+            let invalidationCompleted = false;
+
+            clearVerifiedCredentialState();
+            handleCredentialChange();
+
+            try {
+                const nextGeneration = await queueCredentialMutation(async () => {
+                    await Settings.invalidateCredentialGeneration();
+                    invalidationCompleted = true;
+                    credentialGenerationIsInvalidated = true;
+                    if (!shouldEnable) return null;
+                    return Settings.setPrivateLanHttpAuthAllowed(apiKey, baseUrl, true);
+                });
+                privateLanHttpAuthGeneration = nextGeneration;
+            } catch (error) {
+                if (!invalidationCompleted) {
+                    privateLanHttpAuthGeneration = previousState.generation;
+                    lastVerifiedApiKey = previousState.lastVerifiedApiKey;
+                    lastVerifiedBaseUrl = previousState.lastVerifiedBaseUrl;
+                    lastVerifiedPrivateLanHttpAuthGeneration =
+                        previousState.lastVerifiedPrivateLanHttpAuthGeneration;
+                    hasCachedModelList = previousState.hasCachedModelList;
+                    isCurrentCredentialsVerified = previousState.isCurrentCredentialsVerified;
+                    credentialGenerationIsInvalidated =
+                        previousState.credentialGenerationIsInvalidated;
+                } else {
+                    privateLanHttpAuthGeneration = null;
+                }
+                console.error('Failed to update LAN authentication:', error);
+                showVerifyStatus(`Failed to update LAN authentication: ${error.message}`, 'error');
+            } finally {
+                updatePrivateLanHttpAuthVisibility();
+                handleCredentialChange();
+                setCredentialControlsBusy(false);
+            }
+        });
+    }
 
     // ——— Base URL presets: curated OpenAI-compatible providers (verified April 2026) ———
     // Click the chevron → glass lens opens listing common providers. Selecting
@@ -816,10 +1000,6 @@ document.addEventListener('DOMContentLoaded', function () {
         { name: 'Ollama',      url: 'http://localhost:11434/v1' },
         { name: 'LM Studio',   url: 'http://localhost:1234/v1' }
     ];
-
-    const baseUrlWrap = document.getElementById('baseUrlWrap');
-    const baseUrlPresetBtn = document.getElementById('baseUrlPresetBtn');
-    const baseUrlPresetDropdown = document.getElementById('baseUrlPresetDropdown');
 
     // trim + strip trailing slashes — the canonical form used for persistence
     // and for the /models fetch (a trailing slash would produce /v1//models).
@@ -1070,6 +1250,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Clear Credentials: remove apiKey/baseUrl/model and reset inputs
     if (clearCredentialsButton) {
         clearCredentialsButton.addEventListener('click', async function () {
+            if (!beginCredentialOperation()) return;
             const permissionBaseUrl = lastVerifiedBaseUrl;
             try {
                 // Remove compatibility sync keys as part of the same cleanup.
@@ -1081,11 +1262,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     'lastVerifiedBaseUrl',
                     ...Settings.LEGACY_SYNC_KEYS
                 ]);
-                await Settings.removeLocal([
+                await queueCredentialMutation(() => Settings.removeLocal([
                     ...Settings.MODEL_CACHE_KEYS,
                     'apiKey',
-                    Settings.CREDENTIAL_BINDING_LOCAL_KEY
-                ]);
+                    Settings.CREDENTIAL_BINDING_LOCAL_KEY,
+                    Settings.PRIVATE_LAN_HTTP_AUTH_BINDING_LOCAL_KEY
+                ]));
 
                 let permissionCleanupError = null;
                 if (permissionBaseUrl) {
@@ -1108,8 +1290,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 selectedModelIndex = -1;
                 lastVerifiedApiKey = null;
                 lastVerifiedBaseUrl = null;
+                privateLanHttpAuthGeneration = null;
+                lastVerifiedPrivateLanHttpAuthGeneration = undefined;
                 hasCachedModelList = false;
                 isCurrentCredentialsVerified = false;
+                credentialGenerationIsInvalidated = true;
+                updatePrivateLanHttpAuthVisibility();
                 disableModelSelection();
                 modelDropdown.innerHTML = '<div class="dropdown-item">Cleared. Verify again to load models.</div>';
                 if (permissionCleanupError) {
@@ -1123,6 +1309,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (error) {
                 console.error('Failed to clear credentials:', error);
                 showVerifyStatus(`Failed to clear credentials: ${error.message}`, 'error');
+            } finally {
+                setCredentialControlsBusy(false);
             }
         });
     }
@@ -1207,6 +1395,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showVerifyStatus('Please enter an API key for this remote server', 'error');
             return;
         }
+        if (!beginCredentialOperation()) return;
 
         // Start the permission request synchronously inside the user click.
         // Awaiting another operation first can lose Chrome's transient user
@@ -1236,19 +1425,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const previousHasCachedModelList = hasCachedModelList;
         const previousLastVerifiedKey = lastVerifiedApiKey;
         const previousLastVerifiedBaseUrl = lastVerifiedBaseUrl;
+        const previousLastVerifiedPrivateLanHttpAuthGeneration =
+            lastVerifiedPrivateLanHttpAuthGeneration;
+        let verifiedPrivateLanHttpAuthGeneration = null;
 
         modelSearchInput.value = '';
         modelSearchInput.placeholder = 'Verifying API...';
         modelSearchInput.setAttribute('readonly', 'readonly');
         modelDropdown.innerHTML = '<div class="dropdown-item">Verifying API...</div>';
 
-        verifyButton.disabled = true;
         verifyButton.innerHTML = '<span>Verifying...</span><div class="loading-spinner"></div>';
-        // 验证在途时禁掉 Clear，否则清空后返回的成功路径会把刚清掉的
-        // 验证元数据/模型缓存原样写回，留下"已验证但没有 key"的矛盾状态
-        if (clearCredentialsButton) {
-            clearCredentialsButton.disabled = true;
-        }
 
         try {
             const [permissionAlreadyGranted, permissionGranted] = await Promise.all([
@@ -1277,8 +1463,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
             }
 
+            // A key/address edit or LAN-auth toggle may still be finishing its
+            // local storage write. Resolve the policy only after that write, so
+            // /models and later translations use the same credential generation.
+            await waitForCredentialMutations();
+            verifiedPrivateLanHttpAuthGeneration =
+                await Settings.getPrivateLanHttpAuthGeneration(apiKey, baseUrl);
+
             // First verify API connection and get all models
-            const fetchedModels = await fetchAvailableModels(apiKey, baseUrl);
+            const fetchedModels = await fetchAvailableModels(
+                apiKey,
+                baseUrl,
+                verifiedPrivateLanHttpAuthGeneration
+            );
             const simplifiedModels = fetchedModels
                 .map(model => (model && typeof model.id === 'string') ? { id: model.id } : null)
                 .filter(Boolean);
@@ -1289,7 +1486,12 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (_) {
                 // The mismatch check below will reject invalid/new input.
             }
-            if (apiKeyInput.value.trim() !== apiKey || currentInputBaseUrl !== baseUrl) {
+            await waitForCredentialMutations();
+            const currentPrivateLanHttpAuthGeneration =
+                await Settings.getPrivateLanHttpAuthGeneration(apiKey, baseUrl);
+            if (apiKeyInput.value.trim() !== apiKey ||
+                currentInputBaseUrl !== baseUrl ||
+                currentPrivateLanHttpAuthGeneration !== verifiedPrivateLanHttpAuthGeneration) {
                 throw new Error('Credentials changed during verification. Please verify the current values again.');
             }
 
@@ -1302,7 +1504,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 apiKey,
                 baseUrl,
                 simplifiedModels,
-                verifiedAt
+                verifiedAt,
+                verifiedPrivateLanHttpAuthGeneration
             );
 
             allAvailableModels = simplifiedModels;
@@ -1310,7 +1513,11 @@ document.addEventListener('DOMContentLoaded', function () {
             hasCachedModelList = true;
             lastVerifiedApiKey = apiKey;
             lastVerifiedBaseUrl = baseUrl;
+            privateLanHttpAuthGeneration = verifiedPrivateLanHttpAuthGeneration;
+            lastVerifiedPrivateLanHttpAuthGeneration =
+                verifiedPrivateLanHttpAuthGeneration;
             isCurrentCredentialsVerified = true;
+            credentialGenerationIsInvalidated = false;
 
             if (previousLastVerifiedBaseUrl &&
                 !hasSameApiPermission(previousLastVerifiedBaseUrl, baseUrl)) {
@@ -1356,15 +1563,15 @@ document.addEventListener('DOMContentLoaded', function () {
             hasCachedModelList = previousHasCachedModelList;
             lastVerifiedApiKey = previousLastVerifiedKey;
             lastVerifiedBaseUrl = previousLastVerifiedBaseUrl;
+            lastVerifiedPrivateLanHttpAuthGeneration =
+                previousLastVerifiedPrivateLanHttpAuthGeneration;
             modelSelect.value = previousModelSelection;
             modelSearchInput.value = previousModelValue;
         } finally {
-            verifyButton.disabled = false;
             verifyButton.innerHTML = `<span>${I18n.translate('buttonVerify')}</span>`;
-            if (clearCredentialsButton) {
-                clearCredentialsButton.disabled = false;
-            }
+            updatePrivateLanHttpAuthVisibility();
             handleCredentialChange();
+            setCredentialControlsBusy(false);
         }
     });
 
@@ -1381,33 +1588,55 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function hideVerifyStatus() {
+        if (verifyStatusHideTimer) {
+            clearTimeout(verifyStatusHideTimer);
+            verifyStatusHideTimer = null;
+        }
+        verifyStatus.style.display = 'none';
+    }
+
     // Helper function to show verify status messages
     function showVerifyStatus(message, type) {
+        if (verifyStatusHideTimer) {
+            clearTimeout(verifyStatusHideTimer);
+            verifyStatusHideTimer = null;
+        }
         verifyStatus.textContent = message;
         verifyStatus.className = `status-message status-${type}`;
         verifyStatus.style.display = 'block';
 
         // Auto-hide success messages after 5 seconds
         if (type === 'success') {
-            setTimeout(() => {
+            verifyStatusHideTimer = setTimeout(() => {
                 verifyStatus.style.display = 'none';
+                verifyStatusHideTimer = null;
             }, 5000);
         }
     }
 
     // Fetch available models from the API
-    async function fetchAvailableModels(apiKey, baseUrl) {
+    async function fetchAvailableModels(
+        apiKey,
+        baseUrl,
+        privateLanAuthGeneration = null
+    ) {
         const REQUEST_TIMEOUT_MS = 20000;
         const MAX_RESPONSE_BYTES = 2_000_000;
         const abortController = new AbortController();
         const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
         try {
+            const requestApiKey = await Settings.resolveApiKeyForRequest(
+                apiKey,
+                baseUrl,
+                privateLanAuthGeneration
+            );
             const requestHeaders = {
                 'Content-Type': 'application/json'
             };
-            if (apiKey) {
-                requestHeaders.Authorization = `Bearer ${apiKey}`;
+            if (requestApiKey) {
+                requestHeaders.Authorization = `Bearer ${requestApiKey}`;
             }
 
             const response = await fetch(`${baseUrl}/models`, {

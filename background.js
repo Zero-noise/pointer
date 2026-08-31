@@ -342,8 +342,18 @@ async function getApiConfigurationStatus() {
         return status;
     }
 
-    const apiKeyHash = await Settings.sha256Hex(apiKey);
-    status.isVerified = binding.apiKeyHash === apiKeyHash && binding.baseUrl === normalizedBaseUrl;
+    const [apiKeyHash, privateLanHttpAuthGeneration] = await Promise.all([
+        Settings.sha256Hex(apiKey),
+        Settings.getPrivateLanHttpAuthGeneration(apiKey, normalizedBaseUrl)
+    ]);
+    status.isVerified = binding.apiKeyHash === apiKeyHash &&
+        binding.baseUrl === normalizedBaseUrl &&
+        Settings.credentialBindingMatchesPrivateLanAuth(
+            binding,
+            apiKey,
+            normalizedBaseUrl,
+            privateLanHttpAuthGeneration
+        );
     if (status.isVerified) {
         status.hasHostPermission = await hasHostPermission(normalizedBaseUrl);
     }
@@ -363,10 +373,19 @@ async function getVerifiedApiConfiguration() {
         throw createRequestError('API_KEY_REQUIRED', 'API key is required for remote API servers');
     }
 
-    const apiKeyHash = await Settings.sha256Hex(apiKey);
+    const [apiKeyHash, privateLanHttpAuthGeneration] = await Promise.all([
+        Settings.sha256Hex(apiKey),
+        Settings.getPrivateLanHttpAuthGeneration(apiKey, normalizedBaseUrl)
+    ]);
     if (!binding ||
         binding.apiKeyHash !== apiKeyHash ||
-        binding.baseUrl !== normalizedBaseUrl) {
+        binding.baseUrl !== normalizedBaseUrl ||
+        !Settings.credentialBindingMatchesPrivateLanAuth(
+            binding,
+            apiKey,
+            normalizedBaseUrl,
+            privateLanHttpAuthGeneration
+        )) {
         throw createRequestError(
             'API_VERIFICATION_REQUIRED',
             'The current API key and server address must be verified together in Pointer settings'
@@ -383,7 +402,9 @@ async function getVerifiedApiConfiguration() {
     return {
         apiKey,
         baseUrl: normalizedBaseUrl,
-        model: settings.model || Settings.DEFAULT_SYNC_SETTINGS.model
+        model: settings.model || Settings.DEFAULT_SYNC_SETTINGS.model,
+        privateLanHttpAuthGeneration,
+        credentialBinding: binding
     };
 }
 
@@ -429,7 +450,9 @@ async function handleTranslateRequest(request, sender, sendResponse) {
                     targetLang,
                     apiConfig.apiKey,
                     apiConfig.baseUrl,
-                    apiConfig.model
+                    apiConfig.model,
+                    apiConfig.privateLanHttpAuthGeneration,
+                    apiConfig.credentialBinding
                 ))
         );
 
@@ -441,7 +464,15 @@ async function handleTranslateRequest(request, sender, sendResponse) {
 }
 
 // Function to call AI API for translation
-async function translateText(text, targetLang, apiKey, baseUrl, model) {
+async function translateText(
+    text,
+    targetLang,
+    apiKey,
+    baseUrl,
+    model,
+    privateLanHttpAuthGeneration = null,
+    credentialBinding = null
+) {
     // Handle empty input gracefully to avoid unnecessary API calls
     if (!text || text.trim() === '') {
         return '';
@@ -449,6 +480,12 @@ async function translateText(text, targetLang, apiKey, baseUrl, model) {
 
     baseUrl = Settings.normalizeAndValidateBaseUrl(
         baseUrl || Settings.DEFAULT_SYNC_SETTINGS.baseUrl
+    );
+    apiKey = await Settings.resolveApiKeyForRequest(
+        apiKey,
+        baseUrl,
+        privateLanHttpAuthGeneration,
+        credentialBinding
     );
     if (!apiKey && Settings.isApiKeyRequired(baseUrl)) {
         throw new Error('API key is required for remote API servers');

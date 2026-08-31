@@ -202,6 +202,9 @@
            otherwise outrank the UA sheet's [hidden] rule and leave an empty
            strip behind. */
         .r[hidden] { display: none; }
+        .r.contextual-row:not([hidden]) {
+            animation: fade-in 0.22s var(--spring);
+        }
         /* The hairline belongs to the row BELOW it, so a hidden row draws
            nothing and the last visible row ends bare — no :last-child rule to
            get stranded on a row that is not really there. */
@@ -611,6 +614,10 @@
             outline: 2px solid var(--accent);
             outline-offset: 2px;
         }
+        .mtoggle-input:disabled + .mtoggle {
+            opacity: 0.52;
+            cursor: not-allowed;
+        }
 
         /* ═══════ Shortcut key cap — glass chip next to the toggle as one unit ═══════ */
         .shortcut-pill {
@@ -902,6 +909,20 @@
                                     </button>
                                     <div class="custom-dropdown" id="baseUrlPresetDropdown" role="listbox"></div>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="r contextual-row" id="privateLanHttpAuthRow" hidden>
+                            <div class="r-label">
+                                <span id="privateLanHttpAuthLabel" data-i18n="labelPrivateLanHttpAuth">LAN authentication</span>
+                                <span id="privateLanHttpAuthHint" class="hint" data-i18n="hintPrivateLanHttpAuth">Send the API key to this private HTTP server</span>
+                            </div>
+                            <div class="r-control">
+                                <label class="mtoggle-wrap">
+                                    <input type="checkbox" id="privateLanHttpAuth" class="mtoggle-input"
+                                        aria-labelledby="privateLanHttpAuthLabel"
+                                        aria-describedby="privateLanHttpAuthHint">
+                                    <span class="mtoggle"></span>
+                                </label>
                             </div>
                         </div>
                     </div>
