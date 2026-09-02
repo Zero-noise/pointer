@@ -1,34 +1,16 @@
-/* Styles for Pointer-owned nodes inserted into the page's light DOM.
-   Keep this file separate from content.css: the FAB stylesheet belongs only
-   inside the closed shadow root and must not affect matching site IDs/classes.
+/* Pointer-owned light-DOM nodes only. Keep this separate from content.css,
+   whose selectors are isolated inside the closed FAB shadow root.
 
-   This is the ONE file in the extension that cannot read theme.css. It is
-   injected into the host page's <head>, where declaring :root custom
-   properties would leak Pointer's palette into the site (and collide with the
-   site's own). So the values below are written out literally — they are copies
-   of theme.css, not independent choices. Keep them in sync:
+   This sheet cannot import theme.css without leaking :root tokens into the
+   host page. These literal copies must stay synchronized in both themes:
+     glass chip/rim/specular: 0.42/0.40/0.55; dark 0.10/0.24/0.22
+     ink: 62,58,54 and #3E3A36; dark 241,236,230 and #E6E2DD
+     accent/rim: 31,28,25 at 0.38; dark 245,242,237 at 0.55
+     font stack: mirrors --font-sans
 
-     --glass-chip   rgba(255,255,255,0.42)  /  dark 0.10
-     --glass-rim-a  0.40                    /  dark 0.24
-     --glass-spec-a 0.55                    /  dark 0.22
-     --ink-rgb      62,58,54                /  dark 241,236,230
-     --ink-1        #3E3A36                 /  dark #E6E2DD
-     --accent-rgb   31,28,25 (濃墨)          /  dark 245,242,237 (胡粉)
-     --accent-rim   0.38 α                  /  dark 0.55
-     --font-sans    Hiragino Kaku Gothic ProN, Yu Gothic, -apple-system, …
-
-   NOTE the signal is ink, and ink is defined by its distance from the paper:
-   濃墨 on a dark page is invisible, not merely weak. A mid-tone accent would
-   survive a wrong guess about the host page with only some contrast lost;
-   this one does not. prefers-color-scheme tells us the OS preference, not the
-   site's actual background, so every mark below needs BOTH themes spelled
-   out, hover states included (a :hover rule outranks the dark block, so an
-   un-overridden hover would repaint the mark black on a black page).
-
-   The FAB does not have this problem: it samples the pixels behind itself and
-   flips per-page (--fab-accent-rgb). We cannot do that here — these marks sit
-   inline in the site's own text, on whatever the site painted behind it.
-*/
+   Inline marks cannot sample their page background like the FAB. Keep light
+   and dark hover/keyframe overrides explicit so higher-specificity light rules
+   never repaint a dark mark. */
 
 [data-pointer-extension-owned="loading"].ai-translator-loading-indicator {
     position: absolute;
@@ -112,11 +94,7 @@
     50% { opacity: 0.95; }
 }
 
-/* ── Marks · 墨 ─────────────────────────────────────────────────────────
-   --accent-rim draws the underline beneath a translated sentence.
-   Light = 濃墨 31,28,25. Dark = 胡粉 245,242,237. Alphas run one notch under
-   what a chromatic accent would need: with no chroma left, value carries the
-   whole signal, so the same number reads heavier. */
+/* Translation marks use the copied light/dark accent values above. */
 
 [data-pointer-extension-owned="translation"].ai-translator-highlight {
     background: transparent;
@@ -136,20 +114,25 @@
 }
 
 [data-pointer-extension-owned="translation"].ai-translator-original {
-    background: transparent;
-    border-bottom: 1px dashed rgba(31, 28, 25, 0.3);
-    transition: border-bottom-color 0.25s ease;
-    cursor: pointer;
+    /* A source text node has no element box or element-specific presentation.
+       Neutralize the reversible wrapper so the page's inherited typography,
+       whitespace, and line layout take over, then add only Pointer's state mark. */
+    --pointer-original-underline-color: rgba(31, 28, 25, 0.3) !important;
+    all: unset !important;
+    direction: inherit !important;
+    unicode-bidi: normal !important;
 }
 
 [data-pointer-extension-owned="translation"].ai-translator-original:hover {
-    border-bottom-color: rgba(31, 28, 25, 0.62);
+    --pointer-original-underline-color: rgba(31, 28, 25, 0.62) !important;
 }
 
-/* Dark — the ink flips to gofun. Every state above is repeated, including the
-   hovers: :hover outranks these selectors, so anything left out here would
-   fall through to the 濃墨 rule and vanish on a dark page. The keyframe is
-   restated for the same reason — its 100% frame pins the resting colour. */
+[data-pointer-extension-owned="translation"].ai-translator-original::before,
+[data-pointer-extension-owned="translation"].ai-translator-original::after {
+    content: none !important;
+}
+
+/* Repeat every state: light hover and keyframe rules otherwise outrank/fix color. */
 @media (prefers-color-scheme: dark) {
     [data-pointer-extension-owned="translation"].ai-translator-highlight {
         border-bottom-color: rgba(245, 242, 237, 0.55);
@@ -165,10 +148,10 @@
     }
 
     [data-pointer-extension-owned="translation"].ai-translator-original {
-        border-bottom-color: rgba(245, 242, 237, 0.42);
+        --pointer-original-underline-color: rgba(245, 242, 237, 0.42) !important;
     }
 
     [data-pointer-extension-owned="translation"].ai-translator-original:hover {
-        border-bottom-color: rgba(245, 242, 237, 0.75);
+        --pointer-original-underline-color: rgba(245, 242, 237, 0.75) !important;
     }
 }

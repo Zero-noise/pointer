@@ -1,6 +1,4 @@
-// ──────────────────────────────────────────────────────────────────
 // Settings
-// ──────────────────────────────────────────────────────────────────
 
 // Traces for the skipped / no-op translation paths. Off in shipped builds so
 // Pointer never writes to the console of a page it is a guest on; flip to true
@@ -50,9 +48,7 @@ const Settings = (() => {
         return ensureContentSettingsShape(globalThis.PointerSettings);
     }
 
-    // The manifest intentionally injects only content.js into pages.
-    // Keep this embedded storage adapter aligned with settings.js; the manifest
-    // intentionally injects only this content-script bundle into host pages.
+    // Manifest injects only content.js, so keep this adapter aligned with settings.js.
 
     // The API key lives in chrome.storage.local and is only ever read by the
     // background worker; the content script asks it via the hasApiKey message.
@@ -113,9 +109,7 @@ const Settings = (() => {
     });
 })();
 
-// ──────────────────────────────────────────────────────────────────
 // State
-// ──────────────────────────────────────────────────────────────────
 
 let isActive = Settings.DEFAULT_SYNC_SETTINGS.isActive;
 let targetLang = Settings.DEFAULT_SYNC_SETTINGS.targetLang;
@@ -151,14 +145,10 @@ const DEFAULT_TOGGLE_TOOLTIP = 'Click to switch between the original and the tra
 let toggleTooltipText = DEFAULT_TOGGLE_TOOLTIP;
 const BLOCK_LEVEL_SELECTOR = 'p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, pre, div, section, article';
 
-// Brush-style T icon — two hand-drawn calligraphy strokes, fills parent via width/height 100%
-// 清墨 Clean Sumi · T 瘦到 3.4，两笔书法感，和 halo/ring 同一墨语
 const BRUSH_T_SVG = '<svg viewBox="0 0 32 34" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M5 7 Q 16 4, 28 7"/><path d="M16.5 7 Q 15.9 18, 16.5 29"/></svg>';
 
-// 长按进度环 —— 1s 匀速沿边缘填满；viewBox 0-100, r=47, 2πr≈295 (dasharray/offset)
 const LONG_PRESS_RING_SVG = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><circle cx="50" cy="50" r="47"/></svg>';
 
-// 完成勾 —— 几何 V，和环同一墨色，scale 弹入
 const CHECK_V_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12 L10 17 L19 7"/></svg>';
 
 function openOptionsPageSafely() {
@@ -174,7 +164,6 @@ function openOptionsPageSafely() {
     } catch (_) { }
 }
 
-// Tracks text nodes currently undergoing translation to prevent concurrent mutations
 const pendingTranslationNodes = new Set();
 // CSS classes describe appearance only. Ownership and original text live in
 // content-script memory so a page cannot forge a class and make Pointer remove
@@ -184,9 +173,7 @@ const translatedNodeState = new WeakMap();
 const blockGroupIds = new WeakMap();
 const groupedBlockElements = new Set();
 
-// ──────────────────────────────────────────────────────────────────
 // Selection / Range
-// ──────────────────────────────────────────────────────────────────
 
 function markNodesAsPending(nodes) {
     for (const node of nodes) pendingTranslationNodes.add(node);
@@ -292,7 +279,6 @@ function rangeIntersectsNodeStrict(range, node) {
     }
 }
 
-// Shadow DOM container and root for translation UI
 let aiTranslatorContainer;
 let aiTranslatorShadow;
 let pageStyleElement;
@@ -304,7 +290,6 @@ let pageCssText = '';
 // first paint and reads as a brief activation flash on every page load.
 let cssLoadedPromise = null;
 
-// Function to setup Shadow DOM and load UI styles
 function setupShadowDOM() {
     // Always create a host we own. Reusing a page element with the same ID can
     // attach Pointer state to arbitrary site DOM or crash when it has no shadow.
@@ -322,9 +307,7 @@ function setupShadowDOM() {
     aiTranslatorShadow = aiTranslatorContainer.attachShadow({ mode: 'closed' });
 
     const shadowStyle = document.createElement('style');
-    // theme.css goes in FIRST: it declares the :host tokens (ink, glass
-    // alphas, ink ladder, --font-sans, radii, motion) that content.css reads.
-    // Same file the popup and the options page link — one material, one source.
+    // Prepend shared theme tokens before the FAB rules that consume them.
     cssLoadedPromise = Promise.all([
         fetch(chrome.runtime.getURL('theme.css')).then(response => response.text()),
         fetch(chrome.runtime.getURL('content.css')).then(response => response.text()),
@@ -339,7 +322,6 @@ function setupShadowDOM() {
         pageStyleElement.textContent = pageCssText;
         document.head.appendChild(pageStyleElement);
 
-        // Static CSS 加载完成后，注入动态 spinner 样式
         applyButtonSize(buttonSize);
     }).catch(err => console.error('Failed to load Pointer styles:', err));
 }
@@ -360,7 +342,6 @@ function attachButtonWhenStyled() {
     }
 }
 
-// Check if chrome API is available
 function isChromeAPIAvailable() {
     return typeof chrome !== 'undefined' &&
         chrome.runtime &&
@@ -588,7 +569,7 @@ function noteBareKeyToggle() {
     bareKeyLastActivationAt = 0;
 }
 
-// 提示语走后台：i18n.js 有 30KB 的词表，为一句话把它注入每个页面不划算，
+// 提示语走后台：为一句话把完整词表注入每个页面不划算，
 // 而 background 已经 importScripts 了它。后台不可用时退回英文，
 // 宁可提示语没本地化，也不能让用户什么都看不到。
 async function requestLocalizedText(messageKey, params) {
@@ -648,18 +629,16 @@ async function downgradeShortcutForThisSite() {
     }
 }
 
-// Initialize extension
+// Initialize extension — shortcut.test.js uses this marker to isolate shortcut helpers.
 function initializeExtension() {
     setupShadowDOM();
     // Warm the localized tooltip. Fire-and-forget: spans created before it
     // lands carry the English default and are retitled when it arrives.
     void refreshToggleTooltipText();
-    // Create the floating translation button
     translationButton = document.createElement('div');
     translationButton.id = 'ai-translator-button';
     translationButton.title = 'AI Translation Mode';
 
-    // Halo ring — 外沿缓慢旋转的 sage 渐变光带，作为激活信号
     const haloRing = document.createElement('div');
     haloRing.id = 'ai-translator-halo';
     haloRing.setAttribute('aria-hidden', 'true');
@@ -679,27 +658,23 @@ function initializeExtension() {
         </svg>`;
     translationButton.appendChild(haloRing);
 
-    // Create the icon inside the button
     const buttonIcon = document.createElement('div');
     buttonIcon.id = 'ai-translator-icon';
     buttonIcon.innerHTML = BRUSH_T_SVG;
     translationButton.appendChild(buttonIcon);
 
-    // 长按进度环：常驻结构，靠 .long-press-active 触发 stroke-dashoffset 填充
     const ringLayer = document.createElement('div');
     ringLayer.id = 'ai-translator-ring';
     ringLayer.setAttribute('aria-hidden', 'true');
     ringLayer.innerHTML = LONG_PRESS_RING_SVG;
     translationButton.appendChild(ringLayer);
 
-    // 完成勾：常驻结构，靠 .show 触发 scale+opacity 弹入
     const checkLayer = document.createElement('div');
     checkLayer.id = 'ai-translator-check';
     checkLayer.setAttribute('aria-hidden', 'true');
     checkLayer.innerHTML = CHECK_V_SVG;
     translationButton.appendChild(checkLayer);
 
-    // Check if button should be shown
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
 
@@ -738,14 +713,12 @@ function initializeExtension() {
         });
     } catch (error) {
         console.error('Error initializing button:', error);
-        // Default positioning if API fails
         translationButton.style.bottom = '20px';
         translationButton.style.right = '20px';
         attachButtonWhenStyled();
         setupButtonInteractions();
     }
 
-    // Check if translation mode is active
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
 
@@ -777,18 +750,15 @@ function initializeExtension() {
     // for messages no current surface sends would only widen the content script's
     // surface.
 
-    // Listen for storage changes to update button in real-time
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
 
         chrome.storage.onChanged.addListener(function (changes, namespace) {
             if (namespace === 'sync') {
-                // Handle target language changes so future translations use the latest value
                 if (changes.targetLang) {
                     targetLang = changes.targetLang.newValue || 'zh';
                 }
 
-                // Handle translation activation state changes across tabs without refresh
                 if (changes.isActive) {
                     const shouldActivate = !!changes.isActive.newValue;
                     if (shouldActivate && !isActive) {
@@ -798,19 +768,16 @@ function initializeExtension() {
                     }
                 }
 
-                // Handle button size changes
                 if (changes.buttonSize && changes.buttonSize.newValue) {
                     buttonSize = changes.buttonSize.newValue;
                     applyButtonSize(buttonSize);
                 }
 
-                // Handle 硝子厚度 (shadow / thickness slider) changes
                 if (changes.buttonThickness) {
                     const newThickness = changes.buttonThickness.newValue;
                     applyButtonThickness(typeof newThickness === 'number' ? newThickness : 0);
                 }
 
-                // Handle button position changes including drag updates
                 if (changes.buttonPosition || changes.buttonX || changes.buttonY) {
                     void Settings.getSync(['buttonPosition', 'buttonX', 'buttonY'], true)
                         .then((result) => {
@@ -823,12 +790,10 @@ function initializeExtension() {
                         });
                 }
 
-                // Handle button visibility changes
                 if (changes.showButton !== undefined) {
                     toggleButtonVisibility(changes.showButton.newValue);
                 }
 
-                // Handle keyboard shortcut preferences (hot-reload without page refresh)
                 if (changes.shortcutEnabled) {
                     shortcutEnabled = changes.shortcutEnabled.newValue !== false;
                 }
@@ -884,7 +849,6 @@ function initializeExtension() {
         toggleTranslationMode();
     }, false);
 
-    // CSS styles are now defined in content.css for better maintainability
 }
 
 function getFiniteCoordinate(value) {
@@ -917,19 +881,16 @@ function getVisibleCustomButtonPosition(customX, customY) {
     };
 }
 
-// Position the button according to preferences
 function positionButton(position, customX, customY) {
     currentButtonPosition = position || Settings.DEFAULT_SYNC_SETTINGS.buttonPosition;
     currentButtonX = customX;
     currentButtonY = customY;
 
-    // Reset button positioning
     translationButton.style.top = 'auto';
     translationButton.style.right = 'auto';
     translationButton.style.bottom = 'auto';
     translationButton.style.left = 'auto';
 
-    // Apply position based on setting
     const customPosition = currentButtonPosition === 'custom'
         ? getVisibleCustomButtonPosition(customX, customY)
         : null;
@@ -973,9 +934,7 @@ function keepCustomButtonInViewport() {
     translationButton.style.left = customPosition.x + 'px';
 }
 
-// Setup button interactions for click and long-press
 function setupButtonInteractions() {
-    // Click to toggle translation mode (ignored if long-press occurred)
     translationButton.addEventListener('click', function (e) {
         if (!e.isTrusted) return;
         if (buttonMoved) {
@@ -991,14 +950,12 @@ function setupButtonInteractions() {
         if (!isDragging) {
             const duration = Date.now() - pressStartTime;
             pressStartTime = 0;
-            // Only treat as click if press duration is short
             if (duration < 350) {
                 toggleTranslationMode();
             }
         }
     });
 
-    // Mousedown to start long-press clear or immediate drag
     translationButton.addEventListener('mousedown', function (e) {
         if (!e.isTrusted || e.button !== 0) return;
         pressStartTime = Date.now();
@@ -1011,7 +968,6 @@ function setupButtonInteractions() {
         buttonStartX = translationButton.offsetLeft;
         buttonStartY = translationButton.offsetTop;
         if (isActive) {
-            // Only in translation mode do we clear on long-press
             longPressTimer = setTimeout(() => {
                 handleLongPress();
             }, 350); // Long press threshold (350ms)
@@ -1020,7 +976,6 @@ function setupButtonInteractions() {
         dragStartPending = true;
     });
 
-    // Cancel long press if released early (含环填满前的清除定时器)
     translationButton.addEventListener('mouseup', function (e) {
         if (!e.isTrusted) return;
         cancelLongPress();
@@ -1040,14 +995,11 @@ function setupButtonInteractions() {
         cancelLongPress();
     });
 
-    // Handle dragging movement
     document.addEventListener('mousemove', function (e) {
         if (!e.isTrusted) return;
-        // If pending drag and moved enough, begin dragging
         if (dragStartPending) {
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
-            // Only start dragging on significant movement (>10px) to avoid click jitter
             if (Math.sqrt(dx * dx + dy * dy) > 10) {
                 startDragging(e);
                 dragStartPending = false;
@@ -1060,14 +1012,12 @@ function setupButtonInteractions() {
             const newLeft = buttonStartX + dx;
             const newTop = buttonStartY + dy;
 
-            // Keep button within viewport
             const maxX = window.innerWidth - translationButton.offsetWidth;
             const maxY = window.innerHeight - translationButton.offsetHeight;
 
             translationButton.style.left = Math.max(0, Math.min(newLeft, maxX)) + 'px';
             translationButton.style.top = Math.max(0, Math.min(newTop, maxY)) + 'px';
 
-            // 跟随移动方向的倾斜：较低倍率 + 小限幅 → 沉稳、有重量感
             const vx = e.clientX - lastDragClientX;
             const tilt = Math.max(-8, Math.min(8, vx * 0.8));
             translationButton.style.setProperty('--drag-tilt', tilt + 'deg');
@@ -1075,24 +1025,20 @@ function setupButtonInteractions() {
         }
     });
 
-    // Mouseup anywhere to stop dragging
     document.addEventListener('mouseup', function (e) {
         if (!e.isTrusted) return;
         cancelLongPress();
-        // Cancel pending drag on mouseup
         dragStartPending = false;
         if (isDragging) {
             stopDragging();
         }
     });
 
-    // Prevent default drag behavior
     translationButton.addEventListener('dragstart', function (e) {
         e.preventDefault();
     });
 }
 
-// Start dragging the button
 function startDragging(e) {
     // 拖拽一旦成立，长按蓄力立即作废（含清除定时器和进度环视觉）
     cancelLongPress();
@@ -1102,27 +1048,21 @@ function startDragging(e) {
     // Get the button's current position *before* applying the dragging class
     const rect = translationButton.getBoundingClientRect();
 
-    // 重置倾斜值，避免上一次拖动结束时的残留
     translationButton.style.setProperty('--drag-tilt', '0deg');
     lastDragClientX = e.clientX;
 
-    // Add the dragging class (may change appearance/size)
     translationButton.classList.add('dragging');
 
-    // Prepare fixed positioning using the *original* bounds
     translationButton.style.bottom = 'auto';
     translationButton.style.right = 'auto';
     translationButton.style.top = rect.top + 'px';
     translationButton.style.left = rect.left + 'px';
     translationButton.style.position = 'fixed';
 
-    // Update start positions based on the new fixed positioning
-    // offsetLeft/Top should now reflect the fixed position values
     buttonStartX = translationButton.offsetLeft;
     buttonStartY = translationButton.offsetTop;
 }
 
-// Stop dragging and save new position
 function stopDragging() {
     isDragging = false;
     translationButton.classList.remove('dragging');
@@ -1133,7 +1073,6 @@ function stopDragging() {
     // 落点下方的底色可能和起点完全不同 —— 重采一次自适应 token
     _scheduleAdaptive();
 
-    // Save the new position
     const buttonX = translationButton.offsetLeft;
     const buttonY = translationButton.offsetTop;
 
@@ -1158,9 +1097,7 @@ function stopDragging() {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
 // FAB / Interaction
-// ──────────────────────────────────────────────────────────────────
 
 function toggleTranslationMode() {
     if (isActive) {
@@ -1191,22 +1128,15 @@ function toggleTranslationMode() {
     }
 }
 
-// Activate translation mode
 function activateTranslationMode() {
     isActive = true;
-    // .active 类驱动 CSS 过渡：玻璃本体不动，边沿覆上濃墨、透出滲み、
-    // halo 墨带转起来，T 从 sumi 60% 换蘸濃墨并加粗 3.4 → 3.8。
-    // SVG 节点不动，才能让 stroke-width 平滑动画。
     translationButton.classList.add('active');
 
     document.addEventListener('mouseup', handleTextSelection);
 }
 
-// Deactivate translation mode
 function deactivateTranslationMode() {
     isActive = false;
-    // 取消 .active → CSS 把濃墨收回：stroke 3.8 → 3.4、drop-shadow 退场、
-    // color 从濃墨回到 --ink-color（sumi 60%）。SVG 节点不重建，才能平滑过渡。
     translationButton.classList.remove('active');
 
     document.removeEventListener('mouseup', handleTextSelection);
@@ -1245,12 +1175,10 @@ function rangeTouchesEditableContext(range) {
         );
 }
 
-// Handle text selection (Modified for structure preservation)
 async function handleTextSelection(event) {
     // Programmatic DOM events are controlled by the page. Translation is a
     // quota-spending action and must start from a real user mouse event.
     if (!event || !event.isTrusted) return;
-    // Don't process if we're dragging the button
     if (isDragging) return;
     // 拖拽结束的那次 mouseup 里 stopDragging 先执行（监听器注册更早），
     // isDragging 已被清掉 —— 用一次性标志挡住这次事件，别把页面上
@@ -1264,14 +1192,11 @@ async function handleTextSelection(event) {
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
 
-    // Skip empty selections
     if (!selectedText) return;
 
-    // Get the range for processing
     const range = selection.getRangeAt(0);
     const container = range.commonAncestorContainer;
 
-    // Skip if selection is within the translator button
     if (translationButton.contains(container) || container === translationButton) {
         return;
     }
@@ -1281,7 +1206,6 @@ async function handleTextSelection(event) {
         return;
     }
 
-    // Concurrency guard: skip if any text nodes in this range are already being translated
     if (hasOverlapWithPending(range)) {
         debugLog("AI Translator: Translation already in progress for overlapping region, skipping.");
         return;
@@ -1291,27 +1215,21 @@ async function handleTextSelection(event) {
     const endSpan = getOwnedTranslatedAncestor(range.endContainer);
 
     if (startSpan && endSpan && startSpan === endSpan) {
-        // Selection fully inside a translated span; keep current display state and do nothing
         return;
     }
 
-    // 检查选择是否完全在已翻译区域内
     const isWithinTranslatedSpan = (node) => getOwnedTranslatedAncestor(node) !== null;
 
-    // 如果选择的开始和结束都在已翻译区域内，仅当完全在单个已翻译节点内时跳过
     if (isWithinTranslatedSpan(range.startContainer) && isWithinTranslatedSpan(range.endContainer)) {
         const spanNodes = findTranslatedNodesInRange(range);
         if (spanNodes.length === 1 && isSelectionContainedInNode(range, spanNodes[0])) {
             debugLog("Selection within a single translated node, ignoring translation action");
             return;
         }
-        // 否则选区中含有已翻译片段但不全在同一span内，继续执行后续逻辑
     }
 
-    // 场景 1: 检查选择是否与已翻译内容完全相同
     const exactTranslatedMatch = findExactTranslatedMatch(range);
     if (exactTranslatedMatch) {
-        // 如果是完全相同的选择，不做任何操作
         return;
     }
 
@@ -1332,7 +1250,6 @@ async function handleTextSelection(event) {
         return;
     }
 
-    // 检查当前选区是否与已翻译片段存在交集，如有则直接跳过避免重复翻译
     const translatedNodes = findTranslatedNodesInRange(range);
     if (translatedNodes.length > 0) {
         if (translateMixedSelection(range)) {
@@ -1342,30 +1259,23 @@ async function handleTextSelection(event) {
         return;
     }
 
-    // 场景 4: 选择区域完全是未翻译的内容，正常进行翻译
     const isSimple = isSimpleTextSelection(range);
     if (isSimple) {
-        // 单个文本节点选择，简易翻译
         translateSimpleSelection(range, selectedText);
     } else {
-        // 多节点选择，判断是否在同一块级元素内以决定翻译方式
         const startBlock = getClosestBlockElement(range.startContainer);
         const endBlock = getClosestBlockElement(range.endContainer);
         if (startBlock && endBlock && startBlock === endBlock) {
-            // 同一块级元素内的多节点选区，使用 translateRangeAsSingleBlock 保留内联元素结构
             translateRangeAsSingleBlock(range, { blockElement: startBlock });
         } else {
-            // 跨块级元素的多节点选区，使用结构化翻译以保留跨度
             translateStructuredSelection(range);
         }
     }
 }
 
-// Find exact match of a selection with an existing translated node
 function findExactTranslatedMatch(range) {
     const translatedNodes = getConnectedOwnedTranslatedNodes();
 
-    // Find a node that has identical content
     for (const node of translatedNodes) {
         const nodeRange = document.createRange();
         nodeRange.selectNode(node);
@@ -1379,7 +1289,6 @@ function findExactTranslatedMatch(range) {
     return null;
 }
 
-// Find all translated nodes that intersect with the given range
 function findTranslatedNodesInRange(range) {
     const translatedNodes = [];
     const allTranslatedNodes = getConnectedOwnedTranslatedNodes();
@@ -1393,7 +1302,6 @@ function findTranslatedNodesInRange(range) {
     return translatedNodes;
 }
 
-// Check if selection is fully contained within a node
 function isSelectionContainedInNode(range, node) {
     const nodeRange = document.createRange();
     nodeRange.selectNode(node);
@@ -1402,7 +1310,6 @@ function isSelectionContainedInNode(range, node) {
         range.compareBoundaryPoints(Range.END_TO_END, nodeRange) <= 0);
 }
 
-// Replace a translated node with its original text
 function replaceTranslatedNodeWithOriginal(node) {
     if (!node || !ownedTranslatedNodes.has(node)) {
         return null;
@@ -1418,7 +1325,7 @@ function replaceTranslatedNodeWithOriginal(node) {
         return textNode;
     } else {
         console.warn("AI Translator: Node parent missing when trying to restore original text.", node);
-        return null; // Indicate failure
+        return null;
     }
 }
 
@@ -1532,7 +1439,6 @@ function buildMixedSelectionBlockPlan(selectionRange, blockElements, translatedN
     };
 }
 
-// Translate mixed selections containing both original and already translated segments as a single block
 function translateMixedSelection(range) {
     if (!rangeHasFreshText(range)) {
         return false;
@@ -1646,19 +1552,11 @@ function translateMixedSelection(range) {
     return translationHandled;
 }
 
-// Translate untranslated segments around existing translations
 function translateUntranslatedSegments(range, translatedNodes) {
-    // Filter out nodes without valid parent to avoid selectNode errors
     translatedNodes = translatedNodes.filter(node => node && document.contains(node) && node.parentNode);
-    // This is a complex operation because we need to:
-    // 1. Identify contiguous untranslated text segments
-    // 2. Create ranges for each segment
-    // 3. Translate each segment separately
 
-    // Clone the range to work with
     const workingRange = range.cloneRange();
 
-    // Sort translated nodes by their position in the document
     translatedNodes.sort((a, b) => {
         const posA = a.compareDocumentPosition(b);
         return posA & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
@@ -1668,10 +1566,8 @@ function translateUntranslatedSegments(range, translatedNodes) {
     let currentOffset = range.startOffset;
     const segments = [];
 
-    // For each translated node, create a segment from current position to the node
     for (const node of translatedNodes) {
         const nodeRange = document.createRange();
-        // Skip nodes that cannot be selected (e.g., no parent)
         try {
             nodeRange.selectNode(node);
         } catch (error) {
@@ -1679,36 +1575,30 @@ function translateUntranslatedSegments(range, translatedNodes) {
             continue;
         }
 
-        // If there's text between the current position and this translated node
         if (currentPos !== nodeRange.startContainer || currentOffset !== nodeRange.startOffset) {
             const segmentRange = document.createRange();
             segmentRange.setStart(currentPos, currentOffset);
             segmentRange.setEnd(nodeRange.startContainer, nodeRange.startOffset);
 
-            // Only add non-empty segments
             if (!segmentRange.collapsed && segmentRange.toString().trim()) {
                 segments.push(segmentRange);
             }
         }
 
-        // Move current position to after this translated node
         currentPos = nodeRange.endContainer;
         currentOffset = nodeRange.endOffset;
     }
 
-    // Add final segment from last translated node to end of selection
     if (currentPos !== range.endContainer || currentOffset !== range.endOffset) {
         const finalSegment = document.createRange();
         finalSegment.setStart(currentPos, currentOffset);
         finalSegment.setEnd(range.endContainer, range.endOffset);
 
-        // Only add non-empty segments
         if (!finalSegment.collapsed && finalSegment.toString().trim()) {
             segments.push(finalSegment);
         }
     }
 
-    // Translate each segment
     for (const segment of segments) {
         const segmentText = segment.toString().trim();
         if (segmentText) {
@@ -1721,18 +1611,14 @@ function translateUntranslatedSegments(range, translatedNodes) {
         }
     }
 
-    // Clear selection
     window.getSelection().removeAllRanges();
 }
 
-// Check if selection contains already translated content
 function checkForTranslatedContent(range) {
     return findTranslatedNodesInRange(range).length > 0;
 }
 
-// Determine if a selection is simple (contained within one text node)
 function isSimpleTextSelection(range) {
-    // Check if start and end containers are the same text node
     return range.startContainer === range.endContainer &&
         range.startContainer.nodeType === Node.TEXT_NODE;
 }
@@ -1861,9 +1747,7 @@ function stripDelimiterArtifacts(text, delimiter) {
     return text.replaceAll(delimiter, '').trim();
 }
 
-// ──────────────────────────────────────────────────────────────────
 // Translation Engine
-// ──────────────────────────────────────────────────────────────────
 
 function createTranslationLoadingSession(range, options = {}) {
     const loadingController = options.loadingController || null;
@@ -2273,7 +2157,6 @@ function translateRangeByBlocks(selectionRange, blockElements) {
     return translatedCount > 0;
 }
 
-// Simplified translation for single text node selections
 function translateSimpleSelection(range, selectedText, options = {}) {
     const groupId = options.groupId || getBlockGroupId(range.startContainer);
     const loadingSession = createTranslationLoadingSession(range, options);
@@ -2337,7 +2220,6 @@ function translateSimpleSelection(range, selectedText, options = {}) {
     }
 }
 
-// Complex translation for structured content (preserves DOM structure)
 function translateStructuredSelection(range) {
     const loadingSession = createTranslationLoadingSession(range);
 
@@ -2419,7 +2301,6 @@ function translateStructuredSelection(range) {
         });
 }
 
-// Function to get text nodes in a range
 function getTextNodesInRange(range) {
     const textNodes = [];
 
@@ -2439,7 +2320,6 @@ function getTextNodesInRange(range) {
         NodeFilter.SHOW_TEXT,
         {
             acceptNode: function (node) {
-                // Skip empty nodes and nodes in the button
                 if (!node.textContent.trim() ||
                     (translationButton && translationButton.contains(node.parentNode))) {
                     return NodeFilter.FILTER_REJECT;
@@ -2547,12 +2427,10 @@ function onExtensionContextInvalidated() {
     try {
         if (chrome.runtime && chrome.runtime.id) return;
     } catch (e) {
-        // 访问抛错 = 上下文确实已失效，继续清理
     }
 
     contextInvalidationHandled = true;
 
-    // Remove UI elements that depend on Chrome API
     if (translationButton && translationButton.parentNode) {
         translationButton.parentNode.removeChild(translationButton);
     }
@@ -2563,7 +2441,6 @@ function onExtensionContextInvalidated() {
         pageStyleElement.parentNode.removeChild(pageStyleElement);
     }
 
-    // Remove event listeners
     document.removeEventListener('mouseup', handleTextSelection);
 
     console.warn('Extension context invalidated. The extension might have been updated, reloaded or uninstalled.');
@@ -2571,7 +2448,6 @@ function onExtensionContextInvalidated() {
     showTranslatorToast('Extension context changed. Please refresh the page.');
 }
 
-// Handle extension context invalidation
 function handleExtensionContextInvalidation() {
     window.addEventListener('error', function (event) {
         if (event.error && event.error.message &&
@@ -2589,7 +2465,6 @@ function handleExtensionContextInvalidation() {
     });
 }
 
-// Initialize the extension when the page is loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         initializeExtension();
@@ -2600,13 +2475,11 @@ if (document.readyState === 'loading') {
     handleExtensionContextInvalidation();
 }
 
-// Polyfill for Range.intersectsNode if not available
 if (!Range.prototype.intersectsNode) {
     Range.prototype.intersectsNode = function (node) {
         if (!node || !node.nodeType) return false;
 
         try {
-            // Create a range for the node
             const nodeRange = document.createRange();
 
             if (node.nodeType === Node.TEXT_NODE) {
@@ -2615,7 +2488,6 @@ if (!Range.prototype.intersectsNode) {
                 nodeRange.selectNode(node);
             }
 
-            // Check if ranges intersect (neither ends before the other starts)
             return (
                 this.compareBoundaryPoints(Range.END_TO_START, nodeRange) <= 0 &&
                 this.compareBoundaryPoints(Range.START_TO_END, nodeRange) >= 0
@@ -2627,11 +2499,42 @@ if (!Range.prototype.intersectsNode) {
     };
 }
 
-// ──────────────────────────────────────────────────────────────────
 // DOM Apply
-// ──────────────────────────────────────────────────────────────────
 
-// Add the toggle translation function
+function applyTranslatedNodeDisplayState(node, nodeState, showingOriginal) {
+    const isOriginal = Boolean(showingOriginal);
+    node.textContent = isOriginal ? nodeState.originalText : nodeState.translatedText;
+    nodeState.showingOriginal = isOriginal;
+    node.classList.toggle('ai-translator-highlight', !isOriginal);
+    node.classList.toggle('ai-translator-original', isOriginal);
+
+    if (isOriginal) {
+        // The source was a text node, so restore the page's own whitespace and
+        // inline layout instead of leaving Pointer's translation formatting on it.
+        node.style.removeProperty('white-space');
+        node.style.removeProperty('display');
+        node.style.setProperty('all', 'unset', 'important');
+        node.style.setProperty('direction', 'inherit', 'important');
+        node.style.setProperty('unicode-bidi', 'normal', 'important');
+        node.style.setProperty(
+            'border-bottom',
+            '1px dashed var(--pointer-original-underline-color, rgba(31, 28, 25, 0.3))',
+            'important'
+        );
+        node.style.setProperty('transition', 'border-bottom-color 0.25s ease', 'important');
+        node.style.setProperty('cursor', 'pointer', 'important');
+    } else {
+        node.style.removeProperty('all');
+        node.style.removeProperty('direction');
+        node.style.removeProperty('unicode-bidi');
+        node.style.removeProperty('border-bottom');
+        node.style.removeProperty('transition');
+        node.style.removeProperty('cursor');
+        node.style.setProperty('white-space', 'pre-wrap');
+        node.style.setProperty('display', 'inline');
+    }
+}
+
 function toggleTranslation(event) {
     const span = event.currentTarget;
     if (!ownedTranslatedNodes.has(span)) {
@@ -2651,43 +2554,27 @@ function toggleTranslation(event) {
     candidates.forEach(node => {
         const nodeState = translatedNodeState.get(node);
         if (!nodeState) return;
-
-        if (targetStateIsOriginal) {
-            node.textContent = nodeState.originalText;
-            nodeState.showingOriginal = true;
-            node.classList.remove('ai-translator-highlight');
-            node.classList.add('ai-translator-original');
-        } else {
-            node.textContent = nodeState.translatedText;
-            nodeState.showingOriginal = false;
-            node.classList.add('ai-translator-highlight');
-            node.classList.remove('ai-translator-original');
-        }
+        applyTranslatedNodeDisplayState(node, nodeState, targetStateIsOriginal);
     });
 }
 
-// 修改创建翻译span的函数，确保事件处理正确
 function createTranslatedSpan(translatedText, originalText, groupId) {
     const span = document.createElement('span');
-    span.classList.add('ai-translator-highlight');
     span.setAttribute('data-pointer-extension-owned', 'translation');
-    // Preserve whitespace and formatting
-    span.style.whiteSpace = 'pre-wrap';
-    span.style.display = 'inline';
-    span.textContent = translatedText;
-    ownedTranslatedNodes.add(span);
-    translatedNodeState.set(span, {
+    const nodeState = {
         originalText,
         translatedText,
         showingOriginal: false,
         groupId: groupId || null
-    });
+    };
+    ownedTranslatedNodes.add(span);
+    translatedNodeState.set(span, nodeState);
+    applyTranslatedNodeDisplayState(span, nodeState, false);
 
     let isMouseDown = false;
     let startX = 0;
     let startY = 0;
 
-    // 鼠标按下时记录状态和位置
     span.addEventListener('mousedown', function (e) {
         if (!e.isTrusted || e.button !== 0) return; // 只处理真实左键
         isMouseDown = true;
@@ -2695,18 +2582,15 @@ function createTranslatedSpan(translatedText, originalText, groupId) {
         startY = e.clientY;
     });
 
-    // 鼠标释放时检查是否应该触发切换
     span.addEventListener('mouseup', function (e) {
         if (!e.isTrusted) return;
         if (!isMouseDown) return;
 
-        // 检查鼠标是否移动（允许小范围抖动）
         const moveDistance = Math.sqrt(
             Math.pow(e.clientX - startX, 2) +
             Math.pow(e.clientY - startY, 2)
         );
 
-        // 如果鼠标基本没有移动，且没有选中文本，则视为点击
         if (moveDistance < 5 && !window.getSelection().toString().trim()) {
             toggleTranslation({ currentTarget: this });
         }
@@ -2714,12 +2598,10 @@ function createTranslatedSpan(translatedText, originalText, groupId) {
         isMouseDown = false;
     });
 
-    // 鼠标离开元素时重置状态
     span.addEventListener('mouseleave', function () {
         isMouseDown = false;
     });
 
-    // 添加标题提示
     span.title = toggleTooltipText;
     return span;
 }
@@ -2737,7 +2619,6 @@ async function refreshToggleTooltipText() {
     });
 }
 
-// Add functions: clear all translations and handle long press action
 function clearAllTranslations() {
     // 先推进纪元：清除后才返回的在途请求一律丢弃
     translationEpoch++;
@@ -2774,21 +2655,16 @@ function clearAllTranslations() {
 }
 
 function handleLongPress() {
-    // mark that long press happened
     longPressTriggered = true;
-    // 进入 busy：图标淡出，环沿 1s 匀速填满（CSS 驱动）
     translationButton.classList.add('long-pressing', 'long-press-active');
-    // 按满整圈（1s）才执行清除；提前松手/离开由 cancelLongPress() 撤销
     longPressClearTimer = setTimeout(() => {
         longPressClearTimer = null;
         clearAllTranslations();
         const checkLayer = aiTranslatorShadow.querySelector('#ai-translator-check');
         if (checkLayer) {
             checkLayer.classList.add('show');
-            // 勾号亮相 ~500ms 后开始退场
             setTimeout(() => {
                 checkLayer.classList.remove('show');
-                // 等勾号淡出（~200ms）再清 busy，避免图标/环和勾号同框
                 setTimeout(() => {
                     translationButton.classList.remove('long-press-active', 'long-pressing');
                 }, 200);
@@ -2813,17 +2689,14 @@ function cancelLongPress() {
     }
 }
 
-// Toggle button visibility
 function toggleButtonVisibility(show) {
     showButton = show;
 
     if (show && !translationButton.parentNode) {
         // 走 CSS 加载门挂载，避免首帧无样式 transition 造成的假激活闪烁
         attachButtonWhenStyled();
-        // When showing the button, keep default translation mode (do not activate)
     } else if (!show && translationButton.parentNode) {
         aiTranslatorShadow.removeChild(translationButton);
-        // If hiding the button, also deactivate translation mode if active
         if (isActive) {
             deactivateTranslationMode();
             if (isChromeAPIAvailable()) {
@@ -2833,19 +2706,14 @@ function toggleButtonVisibility(show) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
 // Theme / Adaptive FAB
-// ──────────────────────────────────────────────────────────────────
 
-// Apply button size to the translation button
 function applyButtonSize(size) {
     if (!translationButton || !aiTranslatorShadow) return;
 
-    // Apply size to the button
     translationButton.style.width = `${size}px`;
     translationButton.style.height = `${size}px`;
 
-    // Scale the icon based on button size
     const iconElement = translationButton.querySelector('#ai-translator-icon');
     if (iconElement) {
         const iconSize = Math.max(Math.floor(size / 2), 16);
@@ -2854,12 +2722,9 @@ function applyButtonSize(size) {
         iconElement.style.fontSize = `${Math.max(Math.floor(iconSize * 0.8), 14)}px`;
     }
 
-    // ring / check 用 SVG viewBox + % 宽高，随容器自动缩放，不需要动态样式
 }
 
-// "硝子厚度" 滑块 —— 在 0–100 之间插值 CSS 变量，让玻璃从「薄」过渡到「厚」
-// 0 = 当前的薄玻璃（默认），100 = 硝子・厚 设计（更不透明、更重的阴影、更厚的边框）
-// 设计说明：dark mode 用不同的插值范围（黑色背景上 alpha 需要不同的曲线）
+// Interpolate FAB glass variables; dark mode uses its own alpha range.
 function applyButtonThickness(value) {
     buttonThickness = value;
     if (!translationButton) return;
@@ -2867,7 +2732,6 @@ function applyButtonThickness(value) {
     const t = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
     const s = translationButton.style;
 
-    // List of all vars that get controlled (used both for set and clear)
     const VARS = [
         '--glass-bg-a', '--glass-border-w', '--glass-border-a',
         '--glass-sh1-blur', '--glass-sh1-a',
@@ -2886,21 +2750,18 @@ function applyButtonThickness(value) {
     const isDark = window.matchMedia
         && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    // 尺寸值（边框宽度、阴影模糊、阴影偏移）—— 浅深色一致
     s.setProperty('--glass-border-w', `${lerp(1, 1.6).toFixed(2)}px`);
     s.setProperty('--glass-sh1-blur', `${lerp(4, 10).toFixed(1)}px`);
     s.setProperty('--glass-sh2-blur', `${lerp(8, 20).toFixed(1)}px`);
     s.setProperty('--glass-sh2-y', `${lerp(2, 5).toFixed(1)}px`);
 
     if (isDark) {
-        // Dark mode: 起点再次抬高 —— 在 SuperGrok 那种深色 banner 上也读得出状态
         s.setProperty('--glass-bg-a', lerp(0.38, 0.56).toFixed(3));
         s.setProperty('--glass-border-a', lerp(0.52, 0.68).toFixed(3));
         s.setProperty('--glass-sh1-a', lerp(0.35, 0.55).toFixed(3));
         s.setProperty('--glass-sh2-a', lerp(0.18, 0.32).toFixed(3));
         s.setProperty('--glass-inset-a', lerp(0.48, 0.62).toFixed(3));
     } else {
-        // Light mode: 从薄玻璃 0.42（= theme.css --glass-chip）→ 厚玻璃 0.62
         s.setProperty('--glass-bg-a', lerp(0.42, 0.62).toFixed(3));
         s.setProperty('--glass-border-a', lerp(0.4, 0.55).toFixed(3));
         s.setProperty('--glass-sh1-a', lerp(0.03, 0.08).toFixed(3));
@@ -2909,7 +2770,7 @@ function applyButtonThickness(value) {
     }
 }
 
-// 当 OS 主题在 light/dark 之间切换时，重新应用插值（不同 mode 的 alpha 范围不一样）
+// Recompute theme-dependent alpha ranges when the OS theme changes.
 try {
     if (window.matchMedia) {
         const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -2920,16 +2781,12 @@ try {
         if (darkQuery.addEventListener) {
             darkQuery.addEventListener('change', onChange);
         } else if (darkQuery.addListener) {
-            darkQuery.addListener(onChange); // older Safari
+            darkQuery.addListener(onChange);
         }
     }
 } catch (e) { /* matchMedia not available */ }
 
-// ──────────────────────────────────────────────────────────────────
-// Adaptive ambient sampling — HSP 亮度替代 OS 主题判断
-// 只做三件事：HSP 采样、暖底补偿、墨色翻转
-// 其它参数（frost/edge/inset 插值范围、voidBoost 等）沿用同一套硝子自适应基线
-// ──────────────────────────────────────────────────────────────────
+// Adaptive FAB: sample page luminance, compensate warm backgrounds, and flip ink.
 
 // HSP luminance — sqrt(0.299 r² + 0.587 g² + 0.114 b²)，感知上比 WCAG 更接近人眼
 function _lumHSP(r, g, b) {
@@ -2978,11 +2835,9 @@ function _sampleAmbientBehindFAB() {
         const rgba = _parseBg(bg);
         if (rgba && rgba[3] > 0.5) return [rgba[0], rgba[1], rgba[2]];
     }
-    // 回退：body 背景
     const bodyBg = window.getComputedStyle(document.body).backgroundColor;
     const rgba = _parseBg(bodyBg);
     if (rgba && rgba[3] > 0.3) return [rgba[0], rgba[1], rgba[2]];
-    // 最后回退：OS 主题
     const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     return dark ? [24, 24, 24] : [253, 252, 248];
 }
@@ -2992,28 +2847,18 @@ function _computeAdaptiveTokens(r, g, b) {
     const [h, s] = _rgb2hs(r, g, b);
     const voidBoost = _smooth(_clamp01((0.08 - Y) / 0.08)) * 0.06;
 
-    // ── 硝子配方：α 沿 Y 连续插值 ───────────────────────────────
-    // 3 个锚点通过 piecewise smoothstep 连成一条连续曲线：Y=0 纯黑
-    // (薄炭) / Y=0.45 中灰(中厚) / Y=1 纯白(微厚)。跨过中点时材质
-    // 不会跳变，CSS transition 只负责视觉过渡，不负责掩盖数值断层。
+    // Smoothly interpolate alpha through dark, mid, and light anchors.
     const tDark  = _smooth(_clamp01(Y / 0.45));          // 0 at Y=0, 1 at Y=0.45
     const tLight = _smooth(_clamp01((Y - 0.45) / 0.55)); // 0 at Y=0.45, 1 at Y=1
     const lerp3 = (lo, mid, hi) =>
         Y <= 0.45 ? _lerp(lo, mid, tDark) : _lerp(mid, hi, tLight);
 
-    // frostA（玻璃本体 α）：暗端 0.12 薄炭 ←→ 中 0.30 中厚 ←→ 亮端 0.42 温柔白雾
-    // 亮端 0.42 = theme.css 的 --glass-chip —— 白纸上的球和 popup 的字段
-    // 是同一厚度的同一块玻璃，这是"统一"最实在的一条
     const frostA = lerp3(0.12, 0.30, 0.42) + voidBoost;
-    // edgeA（白 rim 边 α）：暗端 0.08 几乎不见 ←→ 中 0.22 ←→ 亮端 0.40 清透
     const edgeA  = lerp3(0.08, 0.22, 0.40) + voidBoost * 0.6;
-    // insetA（1px 顶沿 specular）：暗端 0.18 细光 ←→ 中 0.30 ←→ 亮端 0.50
     const insetA = lerp3(0.18, 0.30, 0.50);
-    // dragA（拖拽时 α 抬高补偿 backdrop 对比失效）：暗端 0.22 ←→ 中 0.36 ←→ 亮端 0.55
     const dragA  = lerp3(0.22, 0.36, 0.55);
 
-    // 暖底补偿：底色偏暖橙时把 frost RGB 推到 253,254,255（视觉几乎一致，
-    // 语义上声明 frost 不跟着底色一起漂暖）
+    // Keep the frost neutral over warm backgrounds.
     let fr = 255, fg = 255, fb = 255;
     if (Y > 0.3) {
         const hueDist = Math.min(Math.abs(h - 30), 360 - Math.abs(h - 30));
@@ -3021,41 +2866,18 @@ function _computeAdaptiveTokens(r, g, b) {
         if (warm > 0.25) { fr = 253; fg = 254; fb = 255; }
     }
 
-    // ── ink / rim：在 Y=0.35–0.55 内连续换色 ───────────────────
-    // band 外锁定在 sumi / gofun 两端纯色，band 内平滑混色。band 足够窄
-    // (Δ=0.20)，绝大多数页面仍落在一个明确端点，中灰只作为切换过场。
+    // Blend between dark and light ink only within the mid-luminance band.
     const tInk = _smooth(_clamp01((Y - 0.35) / 0.20)); // 0 at Y≤0.35, 1 at Y≥0.55
     const ir = Math.round(_lerp(230, 62, tInk));
     const ig = Math.round(_lerp(226, 58, tInk));
     const ib = Math.round(_lerp(221, 54, tInk));
-    // α：底色越远离中灰，对比越足，α 可以相对收；中间带 α 抬高保可读
-    // Y=0 (gofun/black) 0.88 → Y=0.45 0.82 → Y=1 (sumi/white) 0.60
     const ia = _lerp(0.88, 0.60, _smooth(Y));
 
-    // ── 激活信号：濃墨，跟着纸翻 ────────────────────────────────────
-    // 信号色 = 濃墨（--accent-rgb，theme.css），比正文墨深一档。整个扩展
-    // 只有浓淡、没有色相；唯一的颜色是 --alert 那支朱，只画报错。因此信号
-    // 也必须随页面明暗翻转，不能用一个固定的中明度彩色值代替。
-    //
-    // 代价在这里：墨是靠"离纸多远"定义的，白纸上是黑、黑页上必须是白，
-    // 没法一个值跨明暗。theme.css 的 @media 只知道系统偏好，而 FAB 贴在
-    // 别人家页面上 —— 系统深色、站点白底是极常见的组合。所以这里按 HSP
-    // 采样的实际底色翻，和图标那支墨共用同一条 tInk 过渡带。
-    //
-    // 浓度随环境走的理由是物理的：暗底上玻璃更薄、落影更黑，同样一笔要
-    // 重一档才"落得实"。两端的 α 都比彩色信号需要的低 —— 纯度没了，明度
-    // 差在替它发力，同样的 α 墨看上去重得多。
-    // signalA（边沿 α）：Y=0 暗底 0.72 → Y=1 亮底 0.42
-    // glowA  （辉光 α）：Y=0 暗底 0.20 → Y=1 亮底 0.10
-    //   —— 亮底上这层不再是"辉光"而是滲み：墨洇进纸里的那圈晕。
+    // The active signal uses the same adaptive pigment at stronger opacity.
     const tSig    = _smooth(Y);
     const signalA = _lerp(0.72, 0.42, tSig);
     const glowA   = _lerp(0.20, 0.10, tSig);
 
-    // 色相跟着纸走：亮底 濃墨 31,28,25 ←→ 暗底 胡粉 245,242,237。
-    // 复用上面那条 tInk（Y=0.35–0.55 的过渡带），所以激活边沿和图标的墨
-    // 是同一时刻、同一速度翻的 —— 球上永远只有一支墨，不会出现"字翻了
-    // 边没翻"的半拍。两端比 ink 各深/亮一档，这一档就是"这在生效"。
     const ar = Math.round(_lerp(245, 31, tInk));
     const ag = Math.round(_lerp(242, 28, tInk));
     const ab = Math.round(_lerp(237, 25, tInk));
@@ -3076,7 +2898,6 @@ function applyAdaptiveFAB() {
     const t = _computeAdaptiveTokens(r, g, b);
     const s = translationButton.style;
 
-    // frost RGB（暖底补偿）— 始终写入
     s.setProperty('--glass-bg-rgb', `${t.frostRgb[0]}, ${t.frostRgb[1]}, ${t.frostRgb[2]}`);
 
     // α 曲线 — 只有 thickness 滑块未在拨时才写，避免和厚度逻辑打架
@@ -3086,15 +2907,10 @@ function applyAdaptiveFAB() {
         s.setProperty('--glass-inset-a', t.insetA.toFixed(3));
     }
 
-    // 拖拽时的本体 α —— 亮底 0.55（玻璃更显），暗底 0.18–0.26（薄一档、不发白）
     s.setProperty('--glass-drag-a', t.dragA.toFixed(3));
 
-    // 墨色翻转 — 通过 CSS 变量写入，不破坏 .active 规则的高特指度
     s.setProperty('--ink-color', `rgba(${t.ink[0]}, ${t.ink[1]}, ${t.ink[2]}, ${t.ink[3].toFixed(3)})`);
 
-    // 激活信号浓度 — 墨色由上面的 signalRgb 跟着纸翻，这里只调 α。
-    // 始终写入；未激活时 halo opacity=0、边沿仍是白鳞，变量不影响观感。
-    // 一旦 .active 打开，边沿和辉光立刻以当前环境的浓度出现。
     s.setProperty('--fab-accent-rgb',
         `${t.signalRgb[0]}, ${t.signalRgb[1]}, ${t.signalRgb[2]}`);
     s.setProperty('--fab-signal-a', t.signalA.toFixed(3));
@@ -3141,7 +2957,6 @@ function _scheduleAdaptive() {
 const _adaptiveThemeTimers = [];
 function _scheduleAdaptiveTheme() {
     _scheduleAdaptive();
-    // 清掉上一轮还没跑的 timer 避免叠加
     while (_adaptiveThemeTimers.length) clearTimeout(_adaptiveThemeTimers.pop());
     _adaptiveThemeTimers.push(setTimeout(_scheduleAdaptive, 150));
     _adaptiveThemeTimers.push(setTimeout(_scheduleAdaptive, 400));
@@ -3163,10 +2978,7 @@ window.addEventListener('resize', keepCustomButtonInViewport);
     setTimeout(tick, 150);
 })();
 
-// ──────────────────────────────────────────────────────────────────
-// Toolbar icon adaptive switching
-// 系统/浏览器主题深色 OR 网页背景深色 → 通知后台切白图(per-tab)
-// ──────────────────────────────────────────────────────────────────
+// Switch the per-tab toolbar icon for dark browser or page backgrounds.
 let _lastIconScheme = null;
 
 function _detectIconScheme() {
@@ -3232,9 +3044,7 @@ try {
 } catch (e) { /* matchMedia unavailable */ }
 
 try {
-    // 一个观察者，两个回调：toolbar 图标方案 + FAB 自适应 token
-    // 主流站点（GitHub data-color-mode、Reddit class、Twitter 配色属性）切主题
-    // 都会改 html/body 的 class 或 data-*，一条事件双路驱动最省事
+    // One document-theme observer drives both icon and FAB updates.
     const obs = new MutationObserver(() => {
         _scheduleIconSync();
         _scheduleAdaptiveTheme();

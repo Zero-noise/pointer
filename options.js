@@ -42,10 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
     syncSliderProgress(buttonSizeSlider);
     syncSliderProgress(buttonThicknessSlider);
 
-    // 默认隐藏模型部分，直到API验证成功
     modelSection.classList.add('hidden');
 
-    // Global variables for model management
     let allAvailableModels = [];
     let filteredModels = [];
     let selectedModelIndex = -1;
@@ -159,7 +157,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Model search and selection functions
     function updateModelDropdown(models) {
         modelDropdown.innerHTML = '';
 
@@ -181,7 +178,6 @@ document.addEventListener('DOMContentLoaded', function () {
             modelItem.dataset.index = index;
             modelItem.dataset.modelId = model.id;
 
-            // Check if this is the currently selected model
             if (model.id === modelSelect.value) {
                 modelItem.classList.add('selected');
             }
@@ -199,7 +195,6 @@ document.addEventListener('DOMContentLoaded', function () {
         modelSearchInput.value = modelId;
         selectedModelIndex = index;
 
-        // Update visual selection
         document.querySelectorAll('.model-item').forEach(item => {
             item.classList.remove('selected');
         });
@@ -308,17 +303,14 @@ document.addEventListener('DOMContentLoaded', function () {
         disableModelSelection(messageKey);
     }
 
-    // Ensure model section is disabled until credentials are verified
     disableModelSelection();
 
-    // Model search event listeners
     modelSearchInput.addEventListener('focus', function () {
         if (modelSection.classList.contains('hidden')) {
             return;
         }
         if (allAvailableModels.length > 0) {
             this.removeAttribute('readonly');
-            // Always show all models when focusing, regardless of current input value
             filteredModels = [...allAvailableModels];
             updateModelDropdown(filteredModels);
             showModelDropdown();
@@ -327,7 +319,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     modelSearchInput.addEventListener('blur', function () {
-        // Small delay to allow for click events on dropdown items
         setTimeout(() => {
             this.setAttribute('readonly', 'readonly');
             hideModelDropdown();
@@ -340,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (allAvailableModels.length > 0) {
             this.removeAttribute('readonly');
-            // Always show all models when clicking
             filteredModels = [...allAvailableModels];
             updateModelDropdown(filteredModels);
             showModelDropdown();
@@ -392,7 +382,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', function (e) {
         if (!e.target.closest('.model-search-container')) {
             hideModelDropdown();
@@ -402,16 +391,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Custom select functions for Interface Settings
     function setupCustomSelect(searchInput, dropdown, hiddenInput, initialValue) {
         const items = dropdown.querySelectorAll('.custom-item');
 
-        // Set initial value
         if (initialValue) {
             const selectedItem = dropdown.querySelector(`[data-value="${initialValue}"]`);
 
             if (selectedItem) {
-                // Special handling for language dropdown
                 if (dropdown.id === 'uiLangDropdown') {
                     searchInput.value = I18n.getLanguageDisplayName(initialValue);
                 } else {
@@ -422,14 +408,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Click handler for search input
         searchInput.addEventListener('click', function () {
             hideAllCustomDropdowns();
             dropdown.classList.add('show');
             searchInput.classList.add('active');
         });
 
-        // Click handlers for dropdown items
         items.forEach(item => {
             item.addEventListener('click', function () {
                 const value = this.dataset.value;
@@ -442,13 +426,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 dropdown.classList.remove('show');
                 searchInput.classList.remove('active');
 
-                // Trigger change event
                 const changeEvent = new Event('change', { bubbles: true });
                 hiddenInput.dispatchEvent(changeEvent);
             });
         });
 
-        // Handle blur event
         searchInput.addEventListener('blur', function () {
             setTimeout(() => {
                 dropdown.classList.remove('show');
@@ -472,12 +454,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Initialize custom selects
     function initializeCustomSelects() {
-        // Generate language options first using I18n module
         I18n.generateLanguageOptions(uiLangDropdown, 'custom-item');
 
-        // Wait for translations to be applied first
         setTimeout(() => {
             setupCustomSelect(uiLangSearch, uiLangDropdown, uiLangSelect, uiLangSelect.value || 'en');
             setupCustomSelect(buttonPositionSearch, buttonPositionDropdown, buttonPositionSelect, buttonPositionSelect.value || 'bottom-right');
@@ -500,7 +479,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (result.baseUrl) {
             baseUrlInput.value = result.baseUrl;
         } else {
-            // Default OpenAI URL
             baseUrlInput.value = 'https://api.openai.com/v1';
         }
         privateLanHttpAuthGeneration = result.privateLanHttpAuthGeneration || null;
@@ -509,7 +487,6 @@ document.addEventListener('DOMContentLoaded', function () {
         credentialGenerationIsInvalidated = !result.lastVerified;
         updatePrivateLanHttpAuthVisibility();
 
-        // Only restore the previously selected model value if available
         if (result.model) {
             modelSelect.value = result.model;
             modelSearchInput.value = result.model;
@@ -573,22 +550,18 @@ document.addEventListener('DOMContentLoaded', function () {
             buttonPositionSelect.value = result.buttonPosition;
         }
 
-        // If we have custom coordinates and position is custom
         if (result.buttonPosition === 'custom' && result.buttonX !== undefined && result.buttonY !== undefined) {
             buttonPositionSelect.value = 'custom';
         }
 
-        // Set button size if saved
         if (result.buttonSize) {
             buttonSizeSlider.value = result.buttonSize;
             buttonSizeValue.textContent = `${result.buttonSize}px`;
         } else {
-            // Default size
             buttonSizeSlider.value = 64;
             buttonSizeValue.textContent = '64px';
         }
 
-        // Set button thickness (硝子厚度) — default 0
         const savedThickness = (typeof result.buttonThickness === 'number')
             ? result.buttonThickness
             : 0;
@@ -597,16 +570,13 @@ document.addEventListener('DOMContentLoaded', function () {
         syncSliderProgress(buttonSizeSlider);
         syncSliderProgress(buttonThicknessSlider);
 
-        // UI Language setting with validation
         if (result.uiLang && I18n.isLanguageSupported(result.uiLang)) {
             uiLangSelect.value = result.uiLang;
         } else {
-            // Default to English if saved language is not supported
             uiLangSelect.value = 'en';
             void Settings.setSync({ uiLang: 'en' }).catch(console.error);
         }
 
-        // Keyboard shortcut settings — default ON, default shortcut bare T
         const shortcutOn = result.shortcutEnabled !== false;
         const shortcutCode = result.shortcutKey || 'KeyT';
         shortcutModifier = Settings.normalizeShortcutModifier(result.shortcutModifier);
@@ -617,14 +587,11 @@ document.addEventListener('DOMContentLoaded', function () {
         shortcutKeyBtn.classList.toggle('is-disabled', !shortcutOn);
         renderShortcutNotes();
 
-        // Apply translations after all settings are loaded
         I18n.applyTranslations(uiLangSelect.value);
         I18n.setCurrentLanguage(uiLangSelect.value);
 
-        // Initialize custom selects after everything is loaded
         initializeCustomSelects();
 
-        // Update model section visibility based on stored credentials and models
         updatePrivateLanHttpAuthVisibility();
         handleCredentialChange();
     }).catch((error) => {
@@ -644,7 +611,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     buttonSizeSlider.addEventListener('change', saveInterfaceSettings);
 
-    // Update thickness value display live; persist on release
     buttonThicknessSlider.addEventListener('input', function () {
         buttonThicknessValue.textContent = `${this.value}%`;
         syncSliderProgress(this);
@@ -653,14 +619,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     buttonPositionSelect.addEventListener('change', saveInterfaceSettings);
     uiLangSelect.addEventListener('change', function () {
-        // Apply translations immediately when language changes
         I18n.applyTranslations(this.value);
         I18n.setCurrentLanguage(this.value);
 
         // 这两块是脚本生成的，data-i18n 扫不到，得手动重刷
         renderShortcutNotes();
 
-        // Update custom select displays with new translations
         setTimeout(() => {
             const displayName = I18n.getLanguageDisplayName(this.value);
             if (displayName) {
@@ -963,22 +927,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ——— Base URL presets: curated OpenAI-compatible providers (verified April 2026) ———
-    // Click the chevron → glass lens opens listing common providers. Selecting
-    // one fills the URL field and dispatches the same input/change events the
-    // user would trigger by typing, so existing credential-change logic runs.
-    //
-    // URLs were pulled from each provider's official docs. Several use NON-standard
-    // path prefixes (Groq /openai/v1, OpenRouter /api/v1, Fireworks /inference/v1,
-    // Gemini /v1beta/openai, DashScope /compatible-mode/v1) — store the full path
-    // verbatim; the extension appends /models to whatever the user pastes.
-    //
-    // Excluded on purpose:
-    //   · Azure OpenAI — per-deployment URL, doesn't fit a single preset
-    //   · Perplexity — moved off /v1/chat/completions to /v1/agent|/v1/sonar
-    // Anthropic is included but compat is officially "test/eval"; /v1/messages
-    // is the production path. Users who pick it will still get a model list
-    // because the native /v1/models endpoint returns OpenAI-parseable shape.
+    // Preserve provider-specific path prefixes; Pointer appends /models.
     const baseUrlPresets = [
         // Frontier model providers
         { name: 'OpenAI',      url: 'https://api.openai.com/v1' },
@@ -1007,7 +956,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return (url || '').trim().replace(/\/+$/, '');
     }
 
-    // Case-insensitive variant, used only for preset matching.
     function normalizeUrl(url) {
         return sanitizeBaseUrl(url).toLowerCase();
     }
@@ -1247,7 +1195,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Clear Credentials: remove apiKey/baseUrl/model and reset inputs
     if (clearCredentialsButton) {
         clearCredentialsButton.addEventListener('click', async function () {
             if (!beginCredentialOperation()) return;
@@ -1315,7 +1262,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Scrollspy for sidebar navigation
     const sectionMap = [
         { id: 'apiSection', key: 'api' },
         { id: 'modelSection', key: 'model' },
@@ -1324,12 +1270,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const linkByKey = {};
     navLinks.forEach(link => { linkByKey[link.dataset.nav] = link; });
 
-    // 标志位：是否是手动点击导航触发的滚动
     let isManualNavClick = false;
     let manualNavTimer = null;
 
     const observer = new IntersectionObserver((entries) => {
-        // 如果是手动点击导航触发的滚动，不自动更新active状态
         if (isManualNavClick) return;
 
         entries.forEach(entry => {
@@ -1345,7 +1289,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const el = document.getElementById(s.id);
         if (el) observer.observe(el);
     });
-    // Smooth scroll on click
     navLinks.forEach(link => {
         link.addEventListener('click', function (e) {
             const href = this.getAttribute('href');
@@ -1353,20 +1296,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 const target = document.querySelector(href);
                 if (target) {
-                    // 设置手动点击标志位
                     isManualNavClick = true;
 
-                    // 清除之前的定时器
                     if (manualNavTimer) clearTimeout(manualNavTimer);
 
-                    // 立即更新active状态
                     navLinks.forEach(l => l.classList.remove('active'));
                     this.classList.add('active');
 
-                    // 滚动到目标section
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-                    // 1秒后恢复IntersectionObserver的自动更新功能
                     manualNavTimer = setTimeout(() => {
                         isManualNavClick = false;
                     }, 1000);
@@ -1375,7 +1313,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Verify API and load models
     verifyButton.addEventListener('click', async function () {
         const apiKey = apiKeyInput.value.trim();
         let baseUrl;
@@ -1470,7 +1407,6 @@ document.addEventListener('DOMContentLoaded', function () {
             verifiedPrivateLanHttpAuthGeneration =
                 await Settings.getPrivateLanHttpAuthGeneration(apiKey, baseUrl);
 
-            // First verify API connection and get all models
             const fetchedModels = await fetchAvailableModels(
                 apiKey,
                 baseUrl,
@@ -1535,11 +1471,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             enableModelSelection();
 
-            // If there's a previously selected model that exists in the new list, select it
             if (previousModelSelection && simplifiedModels.some(model => model.id === previousModelSelection)) {
                 selectModel(previousModelSelection, simplifiedModels.findIndex(model => model.id === previousModelSelection));
             } else if (simplifiedModels.length > 0) {
-                // Select first model if no previous selection or previous model not found
                 selectModel(simplifiedModels[0].id, 0);
             } else {
                 modelSelect.value = '';
@@ -1596,7 +1530,6 @@ document.addEventListener('DOMContentLoaded', function () {
         verifyStatus.style.display = 'none';
     }
 
-    // Helper function to show verify status messages
     function showVerifyStatus(message, type) {
         if (verifyStatusHideTimer) {
             clearTimeout(verifyStatusHideTimer);
@@ -1606,7 +1539,6 @@ document.addEventListener('DOMContentLoaded', function () {
         verifyStatus.className = `status-message status-${type}`;
         verifyStatus.style.display = 'block';
 
-        // Auto-hide success messages after 5 seconds
         if (type === 'success') {
             verifyStatusHideTimer = setTimeout(() => {
                 verifyStatus.style.display = 'none';
@@ -1615,7 +1547,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Fetch available models from the API
     async function fetchAvailableModels(
         apiKey,
         baseUrl,
@@ -1668,7 +1599,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
             }
 
-            // Return all models without filtering
             return Array.isArray(data.data) ? data.data : [];
 
         } catch (error) {

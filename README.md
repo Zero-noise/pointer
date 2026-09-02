@@ -13,6 +13,10 @@
   </p>
 </div>
 
+<p align="center">
+  <img src="images/pointer-demo.webp" alt="Pointer translating selected text in place" width="960">
+</p>
+
 ## Use
 
 Click the floating button or press `T` to turn translation on, then select some

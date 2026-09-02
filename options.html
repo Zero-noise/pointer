@@ -7,25 +7,7 @@
     <title>Pointer Options</title>
     <link rel="stylesheet" href="theme.css">
     <style>
-        /* ═══════════════════════════════════════════════════════════════════════
-           Pointer · Options · 硝子
-
-           No palette lives here. Scene, ink, glass, elevation, motion,
-           radii and type all come from theme.css, which the FAB ball and the
-           popup read from too. This file only says how the options page's own
-           parts are cut from that material.
-
-           Numbers (with sources):
-             · Sidebar width 240px        — Apple HIG sidebars 225–275pt band
-             · Panel radius --r-panel 14  — matches the popup's field stack
-             · Input 36 / --r-field / 0   — Vercel Geist h-9, borderless glass
-             · Body label 13px / -0.01em  — Linear --text-mini
-             · Hint 12px                  — Linear --text-micro
-             · Button 32 / --r-ctl / 500  — Linear --button-height + Geist font-medium
-           ═══════════════════════════════════════════════════════════════════════ */
-
-
-
+        /* Options-specific layout; shared visual tokens live in theme.css. */
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
 
@@ -45,7 +27,7 @@
             margin: 0 auto;
         }
 
-        /* ═══════ Header ═══════ */
+        /* Header. */
         .head { margin-bottom: 48px; }
         .head h1 {
             margin: 0 0 6px;
@@ -63,7 +45,7 @@
             line-height: 1.5;
         }
 
-        /* ═══════ Grid — 240px sidebar + content ═══════ */
+        /* Sidebar and content grid. */
         .options {
             display: grid;
             grid-template-columns: 240px 1fr;
@@ -75,7 +57,7 @@
             .sidebar { position: static !important; top: auto !important; }
         }
 
-        /* ═══════ Sidebar — glass sheet, same recipe as the FAB ═══════ */
+        /* Sidebar. */
         .sidebar {
             position: sticky;
             top: 32px;
@@ -87,9 +69,7 @@
             -webkit-backdrop-filter: var(--glass-blur);
             box-shadow: var(--sh-panel);
         }
-        /* Raking sheen across the sheet — the same edge-catch the FAB gets
-           from its 1px top specular, stretched over a large pane. Mixed from
-           --glass-spec-a so it thins with the frost in dark mode. */
+        /* Scale the sidebar sheen with the shared specular alpha. */
         .sidebar::before {
             content: "";
             position: absolute;
@@ -134,9 +114,6 @@
             border-radius: var(--r-ctl);
             transition: color var(--t-color), background var(--t-color);
         }
-        /* hover = a breath of sumi wash; current = 濃墨, one rung deeper, the same
-           "you are here / this is live" mark the FAB and the toggles make.
-           A grey filled block would read as a fourth material. */
         .nav-link:hover {
             color: var(--ink-1);
             background: rgba(var(--ink-rgb), 0.05);
@@ -152,7 +129,7 @@
             outline-offset: -2px;
         }
 
-        /* ═══════ Content — sections sit on glass panels ═══════ */
+        /* Section panels. */
         .content-flat {
             min-width: 0;
             display: flex;
@@ -182,9 +159,7 @@
             max-width: 62ch;
         }
 
-        /* .rows — one frosted sheet per section. No overflow:hidden so the
-           dropdown lenses inside a row can escape the panel; first/last rows
-           carry no hairline, so nothing clashes with the rounded corners. */
+        /* Do not clip dropdowns that escape a section panel. */
         .rows {
             background: var(--glass-panel);
             backdrop-filter: var(--glass-blur);
@@ -198,25 +173,15 @@
             gap: 20px;
             padding: 13px 18px;
         }
-        /* A row hides itself with .hidden = true; .r's own display: flex would
-           otherwise outrank the UA sheet's [hidden] rule and leave an empty
-           strip behind. */
+        /* Override .r's flex display when the hidden attribute is present. */
         .r[hidden] { display: none; }
         .r.contextual-row:not([hidden]) {
             animation: fade-in 0.22s var(--spring);
         }
-        /* The hairline belongs to the row BELOW it, so a hidden row draws
-           nothing and the last visible row ends bare — no :last-child rule to
-           get stranded on a row that is not really there. */
+        /* Put separators on following rows so hidden rows leave no orphan line. */
         .r + .r { border-top: 1px solid var(--glass-line); }
-        /* Label takes the slack, control keeps the fixed column. The control can
-           still shrink on a narrow window; the label stops at 140px first so
-           short hints do not wrap while the row still has unused space. */
         .r-label {
-            /* basis 0, not auto: with an auto basis each label shrinks in
-               proportion to its own text length, so every row's control
-               landed on a different left edge. At 0 the label is pure slack
-               and the control column is identical on every row. */
+            /* A zero basis keeps every control column on the same left edge. */
             flex: 1 1 0;
             min-width: 140px;
             font-size: 13px;
@@ -242,19 +207,10 @@
             gap: 12px;
             position: relative;
         }
-        /* Two loose controls instead of one 320px block: spread them to the
-           column's own edges so the key cap starts where every select and
-           slider starts, and the toggle ends where they end. Right-aligning
-           the pair left the cap floating in the middle of the row, lined up
-           with nothing. Same shape as .mslider-row: control left, state right. */
+        /* Align split controls to the same column edges as fields and sliders. */
         .r-control.spread { justify-content: space-between; }
 
-        /* ═══════ Field — glass chip on the panel, matches popup .field ═══════
-           NOTE: no backdrop-filter here — the .rows panel already frosts the
-           scene, and a nested filter double-counts the backdrop in Chrome
-           (visibly brightens the chip in dark mode). The chip is a thin glass
-           tint + rim riding on the panel's frost. Only elements sitting
-           directly on the body scene get their own blur. */
+        /* Avoid nested backdrop filters: Chrome otherwise brightens chips in dark mode. */
         .mf {
             width: 100%;
             max-width: 320px;
@@ -294,9 +250,6 @@
             background-repeat: no-repeat;
             background-position: right 12px center;
         }
-        /* Dropdown open — swap ring to accent so the chip signals "active"
-           without fighting the hover state. background-color only, so the
-           chevron keeps riding on the glass. */
         .mf.select.active,
         .mf.select.active:hover {
             background-color: var(--glass-chip);
@@ -308,7 +261,7 @@
             }
         }
 
-        /* Custom select wrappers — must be position: relative for absolute dropdown */
+        /* Anchor absolute dropdowns. */
         .model-search-container,
         .custom-select-container,
         .url-preset-wrap {
@@ -317,24 +270,14 @@
             max-width: 320px;
         }
 
-        /* Keep a dropdown above everything painted after it. Two hops are
-           needed because .rows has a backdrop-filter, which makes it a
-           stacking context: the lens's z-index: 20 is sealed inside the panel,
-           so the panel itself has to win the comparison against whatever comes
-           next. Within a section that rival is .s-action — its .mbtn buttons
-           carry their own backdrop-filter, so they too are stacking contexts
-           at layer 0 and can paint over an open lens. Across sections it is the
-           next section's panel. Hence
-           .rows lifts to 1 inside its section, and the sections themselves
-           descend in DOM order. */
+        /* backdrop-filter creates nested stacking contexts, so both the panel
+           and its section must outrank following content while a lens is open. */
         .rows { position: relative; z-index: 1; }
         #apiSection       { position: relative; z-index: 11; }
         #modelSection     { position: relative; z-index: 10; }
         #interfaceSection { position: relative; z-index: 9; }
 
-        /* ═══════ Base URL — input with trailing preset trigger ═══════
-           Same stone chip, but reserves room for a chevron button that opens
-           a lens of common provider endpoints. Custom URLs stay editable. */
+        /* Editable base URL with a preset dropdown trigger. */
         .url-preset-wrap #baseUrl {
             padding-right: 40px;
         }
@@ -435,14 +378,12 @@
             opacity: 1;
         }
 
-        /* Provider list is short and curated — give it more vertical room
-           than the model dropdown (which may hold hundreds of items) so the
-           whole list fits without scrolling on normal viewports. */
+        /* Presets are short enough to show more rows than the model list. */
         #baseUrlPresetDropdown {
             max-height: 360px;
         }
 
-        /* ═══════ Dropdown — glass lens, same float recipe as popup .lens ═══════ */
+        /* Dropdown lens. */
         .model-dropdown,
         .custom-dropdown {
             position: absolute;
@@ -504,12 +445,7 @@
             color: var(--ink-4);
         }
 
-        /* ═══════ Slider — 4px 濃墨 track, 16px pearl thumb ═══════
-           已填的那一段是"这个值现在是多少"，和开关打开、球激活是同一句话，
-           所以用同一支墨。它按 --accent-rim 的 α 画，是一道 4px 的笔画，
-           不是一块实心面 —— 实心 --ink-2 会是整页最重的一块墨面，既违反
-           "墨不变成面"，也是唯一一处用灰色表达"生效中"的控件。
-           把手保持白玻璃珠：珠子是手柄，不是信号。 */
+        /* Slider fill uses signal ink; the thumb stays neutral glass. */
         .mslider-row {
             display: flex;
             align-items: center;
@@ -557,7 +493,7 @@
             letter-spacing: 0.02em;
         }
 
-        /* ═══════ Toggle — glass pearl in a frosted channel, matches popup ═══════ */
+        /* Toggle. */
         .mtoggle-wrap {
             position: relative;
             display: inline-flex;
@@ -593,8 +529,6 @@
             box-shadow: var(--sh-pearl);
             transition: transform var(--t-release), background var(--t-color);
         }
-        /* ON — identical recipe to the popup toggle: ink wash in the
-           channel, inked pearl, 滲み bloom. */
         .mtoggle-input:checked + .mtoggle {
             background: var(--accent-soft);
             box-shadow:
@@ -619,7 +553,7 @@
             cursor: not-allowed;
         }
 
-        /* ═══════ Shortcut key cap — glass chip next to the toggle as one unit ═══════ */
+        /* Shortcut key cap. */
         .shortcut-pill {
             height: 28px;
             min-width: 48px;
@@ -666,7 +600,7 @@
             0%, 100% { opacity: 0.8; }
             50%      { opacity: 1; }
         }
-        /* 快捷键说明 / 逐站例外：整行铺开，不挤在 200px 的标签列里 */
+        /* Let shortcut help and per-site exceptions use the full row width. */
         .r.r-stack {
             flex-direction: column;
             align-items: stretch;
@@ -721,13 +655,7 @@
             outline-offset: 1px;
         }
 
-        /* ═══════ Button — inked glass ═══════
-           The primary action is the same frosted chip as everything else,
-           tinted and drawn in 濃墨 — the same move the FAB makes when it goes
-           active, and the same move the toggle makes when it turns on.
-           Hierarchy comes from the tint and the rim, not from a different
-           material: an opaque saturated fill with white type is the one thing
-           the signal ink is not allowed to be. */
+        /* Primary action tints the shared glass rather than using an opaque fill. */
         .mbtn {
             height: 32px;
             padding: 0 16px;
@@ -763,7 +691,6 @@
                 0 1px 2px rgba(var(--accent-rgb), 0.14),
                 0 10px 24px var(--accent-glow);
         }
-        /* Pressed = the FAB's :active — the glass goes into the paper. */
         .mbtn:active {
             transform: scale(0.985);
             box-shadow:
@@ -773,7 +700,6 @@
         .mbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         .mbtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Secondary — plain glass, no ink. */
         .mbtn.secondary {
             color: var(--ink-2);
             background: var(--glass-chip);
@@ -796,7 +722,6 @@
             gap: 10px;
         }
 
-        /* Loading spinner used inline by options.js when verifying */
         .loading-spinner {
             display: inline-block;
             margin-left: 10px;
@@ -812,7 +737,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* ═══════ Status messages — quiet colored text, no card ═══════ */
+        /* Status messages. */
         .status-message {
             margin-top: 14px;
             padding-left: 2px;
@@ -829,9 +754,7 @@
             color: var(--ink-3);
             font-weight: 500;
         }
-        /* The one mark in the whole extension that is not ink. Depth alone
-           cannot say "this failed" — deeper ink only reads as more emphasis —
-           so errors keep 朱, the correction brush on a sumi manuscript. */
+        /* Alert color distinguishes failure; ink depth alone only adds emphasis. */
         .status-error { color: var(--alert); }
         .status-error::before {
             content: "✗  ";
@@ -842,7 +765,6 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* ═══════ Utilities ═══════ */
         .hidden  { display: none !important; }
         .visible { display: block; }
 

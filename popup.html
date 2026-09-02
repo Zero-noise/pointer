@@ -6,30 +6,14 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="theme.css">
     <style>
-        /* ═══════════════════════════════════════════════════════════════════════
-           Pointer · Popup · 硝子
-
-           No palette lives here. Scene, ink, glass, elevation, motion,
-           radii and type all come from theme.css, which the FAB ball and the
-           options page read from too. This file only says how the popup's own
-           parts are cut from that material.
-
-           The language picker is one accessible custom combobox owned directly
-           by popup.js. The checkbox stays visually hidden because its native
-           label and keyboard behavior drive the glass toggle without extra JS.
-           ═══════════════════════════════════════════════════════════════════════ */
-
-
-
+        /* Popup-specific layout; shared material tokens live in theme.css.
+           Native checkbox semantics drive the visual toggle. */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        /* Body IS the scene — .pointer-scene (theme.css) paints the same tiling
-           paper ground as the options page, so both surfaces read as crops of
-           one sheet. */
         body {
             width: 290px;
             padding: 22px 22px 18px;
@@ -37,8 +21,7 @@
             line-height: 1.5;
         }
 
-        /* Visually hidden checkbox. No pointer-events: none — the wrapping label
-           still needs native label → input click behavior. */
+        /* Keep label-to-input click behavior while hiding the native checkbox. */
         .native-hidden {
             position: absolute !important;
             width: 1px !important;
@@ -48,7 +31,6 @@
             top: 0 !important;
         }
 
-        /* ═══════ Glass · popup panel — layout-only wrapper above the noise ═══════ */
         .paper.popup {
             position: relative;
             z-index: 1;
@@ -103,16 +85,7 @@
             letter-spacing: 0.005em;
         }
 
-        /* ═══════ Field — glass chip resting on the scene ═══════
-           Same material as the FAB ball, and now the same physics: the ball
-           lifts off the page on hover, sinks on press and rides the spring
-           back up. A chip that only swapped colors read as a picture of glass;
-           a chip you can push reads as the thing itself.
-
-           The press displacement is matched in PIXELS, not in ratio — the
-           ball's scale(0.96) at 64px moves its edge ~2.6px, and 0.99 on a
-           246px-wide field moves it about the same. Equal ratios would make
-           the wide field lurch. */
+        /* Tune field press displacement in pixels rather than reusing the FAB ratio. */
         .field {
             width: 100%;
             padding: 11px 14px;
@@ -131,25 +104,18 @@
             user-select: none;
             font-family: inherit;
         }
-        /* Hover = floats off the paper. One pixel, not the ball's two: the
-           field is wide and shallow, so the same lift reads as twice as far. */
         .field:hover {
             transform: translateY(-1px);
             background: var(--glass-chip-hover);
             box-shadow: var(--sh-chip-hover);
         }
-        /* Press = pushed into the paper. Instant and linear going down
-           (--t-press), spring coming back up (inherited --t-release) — the
-           asymmetry is the whole gesture. */
+        /* Fast press; the base spring handles release. */
         .field:active {
             transform: scale(0.99);
             box-shadow: var(--sh-chip-press);
             transition: transform var(--t-press), box-shadow var(--t-press);
         }
-        /* Lens open = the FAB's active gesture at field scale: 濃墨 laid over
-           the white specular (listed first so it paints on top of it), the
-           glass body untouched, and the same soft 滲み the ball and the toggle
-           bleed. Driven off aria-expanded, which popup.js already maintains. */
+        /* aria-expanded is the visual source of truth for the open combobox. */
         .field[aria-expanded="true"] {
             background: var(--glass-chip-hover);
             box-shadow:
@@ -157,9 +123,7 @@
                 var(--sh-chip),
                 0 0 8px 0 var(--accent-glow);
         }
-        /* Pressing an open field (i.e. clicking it shut) still sinks: the ink
-           edge stays, the drops collapse. Needs its own rule because the
-           open state and :active carry the same specificity. */
+        /* Match the open-state specificity so pressing it still collapses the shadow. */
         .field[aria-expanded="true"]:active {
             box-shadow:
                 inset 0 0 0 1px var(--accent-rim),
@@ -189,11 +153,7 @@
             flex-shrink: 0;
         }
 
-        /* ═══════ Lens — glass dropdown ═══════
-           position: fixed so it floats above the popup body without
-           contributing to scrollHeight (which would stretch the Chrome
-           popup window). popup.js computes top/left/width from
-           langField.getBoundingClientRect() on open. */
+        /* Fixed positioning avoids stretching the Chrome popup; JS supplies its bounds. */
         .lens {
             position: fixed;
             padding: 5px;
@@ -203,21 +163,14 @@
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
             box-shadow: var(--sh-float);
-            /* max-height set by popup.js to fit inside the current
-               popup viewport so the lens is never clipped by the popup
-               window edge. */
+            /* popup.js constrains max-height to the current viewport. */
             overflow-y: auto;
             overscroll-behavior: contain;
             display: none;
-            /* Grows out of the field's bottom edge, so the origin sits where
-               the lens is anchored rather than at its middle. */
             transform-origin: top center;
             animation: lens-in 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
         }
         .lens.show { display: block; }
-        /* Same shape as the FAB's halo-enter: tighten in, overshoot a hair at
-           ~55%, settle. Opacity finishes before the form does, so the sheet
-           reads as focusing into place, not as sliding in. */
         @keyframes lens-in {
             0%   { opacity: 0; transform: translateY(-3px) scale(0.965); }
             55%  { opacity: 1; transform: translateY(0) scale(1.008); }
@@ -257,7 +210,7 @@
             margin-left: auto;
         }
 
-        /* ═══════ Custom ISO input (when "Other..." is picked) ═══════ */
+        /* Custom ISO input for “Other…”. */
         #customLangInputContainer {
             display: none;
             margin-top: 10px;
@@ -279,11 +232,7 @@
             box-shadow: var(--sh-chip);
             transition: background var(--t-color), box-shadow var(--t-color);
         }
-        /* Focus and error are drawn ON the glass — an inked edge over the
-           specular plus the shared 滲み — not a hard full-alpha ring around
-           it. A hard ring is the pit docs/FAB_UI_DESIGN.md §三 names: the chip
-           stops being 硝子 for as long as the ring is up. 朱 draws the edge
-           for the error and takes no bleed; only the signal ink glows. */
+        /* Focus and invalid states overlay the glass without replacing its base shadow. */
         #customTargetLang:focus {
             box-shadow:
                 inset 0 0 0 1px var(--accent-rim),
@@ -305,12 +254,7 @@
             letter-spacing: 0.04em;
         }
 
-        /* ═══════ Toggle — glass pearl in a frosted channel ═══════
-           label wraps native checkbox + visual pebble. Clicking anywhere
-           on the label fires click on the input via standard HTML label
-           behavior → native 'change' event → popup.js's listener saves.
-           CSS ~ sibling selector drives the visual off the :checked state,
-           which reflects programmatic .checked = X changes too. Zero JS. */
+        /* The native checkbox remains the source of truth for the visual toggle. */
         .toggle-row {
             display: flex;
             align-items: center;
@@ -346,11 +290,6 @@
             box-shadow: var(--sh-pearl);
             transition: transform var(--t-release), background var(--t-color);
         }
-        /* Drive visual off :checked — matches live state always */
-        /* ON — the channel takes an ink wash, the pearl is inked 濃墨 and
-           bleeds a soft 滲み. Exactly the FAB's active gesture at 22px, and
-           like the FAB it carries no hue: the knob simply goes from frosted
-           glass to wet ink. */
         .toggle-row input[type="checkbox"]:checked ~ .toggle {
             background: var(--accent-soft);
             box-shadow:
@@ -366,12 +305,7 @@
                 0 0 0 0.5px rgba(var(--accent-rgb), 0.55),
                 0 1px 3px rgba(var(--accent-rgb), 0.35);
         }
-        /* Press = the pearl is pushed into its channel, in both states. Same
-           asymmetry as the field and the ball: down on --t-press, back up on
-           the spring in the base rule. The ratio is bigger than the field's
-           because 18px needs it to read at all — the displacement lands in
-           the same 1–3px band everything else moves in.
-           Listed after the :checked rules so it wins in the ON state. */
+        /* Listed after :checked so pressed transforms win in both states. */
         .toggle-row:active .toggle::after {
             transform: scale(0.92);
             transition: transform var(--t-press), background var(--t-color);
@@ -381,13 +315,12 @@
             transition: transform var(--t-press), background var(--t-color);
         }
 
-        /* Focus ring on the pebble when the hidden input is focused via keyboard */
+        /* Expose keyboard focus on the visual toggle. */
         .toggle-row input[type="checkbox"]:focus-visible ~ .toggle {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
         }
 
-        /* ═══════ Footer ═══════ */
         .popup-foot {
             margin-top: 20px;
             padding-top: 14px;
@@ -420,7 +353,6 @@
 
 <body class="pointer-scene">
 
-    <!-- Popup panel -->
     <div class="paper popup">
 
         <header class="popup-head">

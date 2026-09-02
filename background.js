@@ -169,7 +169,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return false;
     }
-    // Potential future message handlers
 });
 
 const MAX_CONCURRENT_REQUESTS = 3;
@@ -463,7 +462,6 @@ async function handleTranslateRequest(request, sender, sendResponse) {
     }
 }
 
-// Function to call AI API for translation
 async function translateText(
     text,
     targetLang,
@@ -473,7 +471,6 @@ async function translateText(
     privateLanHttpAuthGeneration = null,
     credentialBinding = null
 ) {
-    // Handle empty input gracefully to avoid unnecessary API calls
     if (!text || text.trim() === '') {
         return '';
     }
@@ -506,7 +503,6 @@ async function translateText(
     const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-        // Using OpenAI API as default, but customizable through baseUrl
         const requestHeaders = {
             'Content-Type': 'application/json'
         };
@@ -547,7 +543,6 @@ async function translateText(
                 const errorData = JSON.parse(responseText);
                 apiErrorMessage = errorData && errorData.error && errorData.error.message;
             } catch (_) {
-                // Non-JSON errors are handled below.
             }
 
             if (typeof apiErrorMessage === 'string' && apiErrorMessage.trim()) {
@@ -563,7 +558,6 @@ async function translateText(
             );
         }
 
-        // Safely parse JSON
         let responseData;
         try {
             responseData = JSON.parse(responseText);
@@ -595,7 +589,6 @@ async function translateText(
             error = new Error(`Translation request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
         }
         console.error('API request failed:', error);
-        // Re-throw the error so the caller can handle it
         throw error;
     } finally {
         clearTimeout(timeoutId);

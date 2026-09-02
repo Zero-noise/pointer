@@ -1,65 +1,11 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   Pointer · theme.css — 硝子 · one material system for the whole extension
-
-   Loaded by popup.html, options.html, and (fetched + prepended to content.css)
-   the FAB's closed shadow root. Everything Pointer draws — the ball, the
-   popup, the options page, the translating indicator — is made of the same
-   three things:
-
-     1. SCENE   一枚和紙  a warm paper ground. Never a surface you can click.
-     2. GLASS   硝子      white frosted glass at varying alpha. Every control,
-                          panel, lens, pearl and the FAB ball itself. Dark mode
-                          is NOT a material switch — it is the same white glass
-                          with the alpha pulled thin.
-     3. INK     墨        marks ON the glass, never a material of their own:
-                          sumi type (--ink-*) for content, 濃墨 (--accent) one
-                          rung deeper for the single "this is live" signal.
-
-   There is no accent HUE. The whole extension is drawn in one pigment at
-   different depths — 濃淡 — and the only colour left anywhere is 朱 (--alert),
-   reserved for errors the way a reader's vermilion brush is reserved for
-   corrections on an otherwise black-and-white page.
-
-   The one rule that keeps it coherent: ink never becomes a surface. Nothing is
-   filled with the signal ink; it only ever draws — a rim, an underline, a
-   halo, a knob, a word. That is why the FAB's active state, the popup's
-   toggle, the options page's primary button and a translated sentence's
-   underline all read as the same gesture in different sizes.
-
-   `:root, :host` — :root for the two extension pages, :host for the FAB's
-   shadow root (the host element's inline `all: initial` does not reset custom
-   properties, so these inherit down into the shadow tree normally).
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Shared tokens for the extension pages (:root) and FAB shadow root (:host).
+   Design rationale lives in docs/FAB_UI_DESIGN.md. */
 
 :root,
 :host {
-    /* ── SCENE · 和紙 ───────────────────────────────────────────────────────
-       Flat paper, then two textures painted over it by .pointer-scene:
-       fine fibre grain and the sheet's own 漉き斑 / 簀の目 unevenness.
-       Both tile, so every page is a crop of one continuous sheet.
-       There is no directional lighting — an earlier version lit the sheet
-       from the upper left with a gofun/sumi gradient pair; it was dropped
-       because a 290px popup and a full-width options page cannot be lit
-       from the same direction without one of them looking wrong.
-
-       ONE HUE: every pigment in this file — paper, every ink rung, gofun,
-       the signal ink — sits at Oklab hue 67°, the 油煙 warm-black the sumi
-       ladder was always on. The muted text rungs stop at the 4.5:1 normal-text
-       contrast floor; size, weight and spacing carry the remaining hierarchy.
-
-       If you add a token here, put it on 67° or leave it achromatic. Chroma
-       below ~0.005 is under one 8-bit step and counts as achromatic — that
-       is why the grain tints are left as they are. Both pages paint
-       `background: var(--scene)`, so the popup is a crop of the same wall. */
+    /* SCENE · 和紙 — keep new pigments at Oklab hue 67° or achromatic. */
     --page:     #F5F2EE;
-    /* 漉き斑 · 簀の目 — the sheet's own unevenness, on ONE 800px tile.
-       Two turbulences: a slow isotropic cloud (pulp settling thick and thin)
-       and a slow-in-x / fast-in-y streak (the laid lines the bamboo screen
-       leaves). Both stitchTiles, so the sheet repeats without a seam and is
-       the SAME paper at 290px and at 1400px — which is the whole point.
-
-       Contrast is held under ~4%: paper is uneven, not dirty. If a blotch is
-       ever legible as a shape, the alpha is too high. */
+    /* Tileable paper texture; visible blotches mean its contrast is too high. */
     --washi: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='800'><filter id='k' x='0%' y='0%' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.0055' numOctaves='5' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.28  0 0 0 0 0.27  0 0 0 0 0.26  0 0 0 0.075 -0.028'/></filter><filter id='s' x='0%' y='0%' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.16' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.28  0 0 0 0 0.27  0 0 0 0 0.26  0 0 0 0.05 -0.03'/></filter><rect width='100%' height='100%' filter='url(%23k)'/><rect width='100%' height='100%' filter='url(%23s)'/></svg>");
     --scene: var(--page);
 
@@ -68,10 +14,7 @@
     --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.28  0 0 0 0 0.27  0 0 0 0 0.26  0 0 0 .22 -0.14'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
     --grain-blend: multiply;
 
-    /* ── INK · 墨 ───────────────────────────────────────────────────────────
-       sumi ladder for type and hairlines. --ink-rgb / --gofun-rgb are the raw
-       triplets every shadow and hairline in the system is mixed from, so
-       "shadow" always means the same pigment as "text". */
+    /* INK · 墨 — shared pigment ladder for type, hairlines, and shadows. */
     --ink-1: #3E3A36;   /* sumi — primary type */
     --ink-2: #6B6762;   /* labels */
     --ink-3: #716C67;   /* hints, section heads */
@@ -79,24 +22,7 @@
     --ink-rgb:   62, 58, 54;
     --gofun-rgb: 241, 236, 230;
 
-    /* ── ACCENT · 濃墨 ──────────────────────────────────────────────────────
-       The single signal ink, and it is literally ink. The system has no hue
-       left: hierarchy is carried by 濃淡 alone, the depth of the ink. The
-       accent sits one rung DEEPER than --ink-1, so an active mark reads as a
-       freshly laid, still-wet stroke against dry grey type. It is the FAB's
-       active rim / halo / progress ring, the toggle knob, the slider's filled
-       track, the primary button's ink, and the underline beneath a
-       translated sentence.
-
-       Alphas run lighter than a chromatic accent would need: value is doing
-       all the work chroma used to do, so 濃墨 at 0.38 already carries more
-       weight on paper than a mid-tone colour did at 0.42.
-
-       The trade: ink CANNOT hold one value across both themes — it has to
-       flip to 胡粉 gofun on dark paper exactly the way --ink-* does. The dark
-       block re-declares --accent-rgb for that, and the FAB goes further: it
-       samples the host page and flips per-page, because a site background
-       does not have to agree with the OS preference. */
+    /* ACCENT · 濃墨 — the single state pigment; dark mode flips it to gofun. */
     --accent-rgb: 31, 28, 25;                        /* 濃墨 #1F1C19 */
     --accent:       rgb(var(--accent-rgb));
     --accent-hover: #100E0C;                         /* press = more ink, never another hue */
@@ -105,21 +31,10 @@
     --accent-rim:   rgba(var(--accent-rgb), 0.38);   /* drawn edge / underline */
     --accent-glow:  rgba(var(--accent-rgb), 0.10);   /* 滲み — ink bleeding into paper */
 
-    /* ── ALERT · 朱 ────────────────────────────────────────────────────────
-       The one place colour survives, and it survives for a reason: a system
-       made only of 濃淡 cannot say "this failed" with depth alone — deeper ink
-       just reads as more emphasis. 朱筆 is the correction ink a reader lays
-       over a sumi manuscript: one vermilion mark on an otherwise black-and-
-       white page. Errors only — never a hover, never a state. */
+    /* ALERT · 朱 — errors only, never hover or active state. */
     --alert: #B34E3E;
 
-    /* ── GLASS · 硝子 ───────────────────────────────────────────────────────
-       One frost, five thicknesses. panel = big sheets (sidebar, section
-       stacks), chip = controls, float = lenses hovering above everything,
-       pearl = small solid bits (toggle knob, slider thumb), channel =
-       recessed frost a pearl rides in. The FAB ball is a chip that happens
-       to be round; --glass-rim-a / --glass-spec-a are literally the alphas
-       its border and top specular use. */
+    /* GLASS · 硝子 — panel, chip, float, pearl, and recessed channel. */
     --glass-blur:       blur(24px) saturate(160%);
     --glass-panel:      rgba(255, 255, 255, 0.55);
     --glass-chip:       rgba(255, 255, 255, 0.42);
@@ -131,10 +46,7 @@
     --glass-rim-a:      0.40;   /* white edge-catch on a glass edge */
     --glass-spec-a:     0.55;   /* 1px top specular */
 
-    /* ── ELEVATION ──────────────────────────────────────────────────────────
-       Every shadow is the same three-part chord: a white rim inset (the glass
-       edge catching light), a hairline sumi contact ring, and two sumi drops.
-       Only the drop distance changes with height. */
+    /* ELEVATION — white inset rim, ink contact ring, then two drop shadows. */
     --sh-panel: inset 0 0 0 1px hsla(0, 0%, 100%, var(--glass-spec-a)),
                 0 0 0 1px rgba(var(--ink-rgb), 0.08),
                 0 2px 6px rgba(var(--ink-rgb), 0.04),
@@ -147,9 +59,7 @@
                 0 0 0 1px rgba(var(--ink-rgb), 0.14),
                 0 1px 2px rgba(var(--ink-rgb), 0.06),
                 0 12px 28px rgba(var(--ink-rgb), 0.09);
-    /* Pressed into the paper: the drops collapse to a 2px contact blur and the
-       top specular dims a notch — the same two things that happen to the FAB
-       at :active. Nothing is recolored; the glass just gets closer. */
+    /* Pressed state collapses the drops without changing pigment. */
     --sh-chip-press: inset 0 0 0 1px hsla(0, 0%, 100%, 0.42),
                 0 0 0 1px rgba(var(--ink-rgb), 0.12),
                 0 0 2px rgba(var(--ink-rgb), 0.06);
@@ -166,27 +76,20 @@
                 0 1px 2px rgba(var(--ink-rgb), 0.04);
     --sh-ink-1: 0 1px 2px rgba(var(--ink-rgb), 0.05);
 
-    /* ── MOTION ─────────────────────────────────────────────────────────────
-       Asymmetric by design: press is instant and linear, release rides a
-       spring. Same curve on the FAB, a toggle knob and a dropdown. */
+    /* MOTION — fast press, spring release. */
     --spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
     --t-release: 0.22s var(--spring);
     --t-press:   0.08s ease-out;
     --t-color:   0.16s ease-out;
 
-    /* ── RADII ──────────────────────────────────────────────────────────────
-       panel > field > ctl > tight. Sheets are soft, marks are crisp. */
+    /* RADII — panel > field > control > tight. */
     --r-panel: 14px;
     --r-field: 10px;
     --r-ctl:    6px;
     --r-tight:  4px;
     --r-pill:  999px;
 
-    /* ── TYPE ───────────────────────────────────────────────────────────────
-       One humanist gothic across popup, options and the in-page indicator.
-       Hiragino/Yu Gothic lead because the whole vocabulary is Japanese; both
-       carry a Latin cut warm enough to sit on paper, and the system stack
-       behind them keeps Windows and Linux honest. */
+    /* TYPE */
     --font-sans: "Hiragino Kaku Gothic ProN", "Yu Gothic", -apple-system,
                  BlinkMacSystemFont, "Inter", "PingFang SC",
                  "Hiragino Sans GB", sans-serif;
@@ -194,15 +97,7 @@
                  "IBM Plex Mono", ui-monospace, monospace;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Dark — same glass, thinner frost
-
-   Nothing here swaps a material. The frost alphas drop, the rim pigment goes
-   from white to gofun, drops go neutral black, and the scene inverts. The
-   signal ink inverts along with everything else — 濃墨 on paper, 胡粉 on a
-   black page — because ink is defined by its distance from the paper, not by
-   a hue it could carry across both. 朱 is the only thing that holds still.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Dark: thinner frost, gofun rims, and neutral-black drops. */
 @media (prefers-color-scheme: dark) {
     :root,
     :host {
@@ -218,15 +113,13 @@
         --ink-4: #9D9892;
         --ink-rgb: 241, 236, 230;   /* hairlines are drawn in gofun on dark paper */
 
-        /* The signal ink flips with the paper it sits on: 濃墨 → 胡粉, one rung
-           BRIGHTER than --ink-1, mirroring the light theme's one-rung-deeper. */
+        /* Signal ink flips to one rung brighter than --ink-1. */
         --accent-rgb: 245, 242, 237;   /* 胡粉 #F5F2ED */
         --accent-hover: #FFFFFF;
         --accent-soft:  rgba(var(--accent-rgb), 0.09);
         --accent-tint:  rgba(var(--accent-rgb), 0.14);
         --accent-rim:   rgba(var(--accent-rgb), 0.55);
-        --accent-glow:  rgba(var(--accent-rgb), 0.16);   /* on dark paper the
-                                                            bleed really is a bloom */
+        --accent-glow:  rgba(var(--accent-rgb), 0.16);   /* bloom on dark paper */
         --alert: #E68070;
 
         --glass-panel:      rgba(255, 255, 255, 0.13);
@@ -270,10 +163,7 @@
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Scene painters — the two extension pages share these verbatim, so the
-   popup is a 290px crop of the same wall the options page hangs on.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Shared scene painter for popup and options. */
 .pointer-scene {
     background: var(--scene);
     background-attachment: fixed;
@@ -287,9 +177,7 @@
     content: "";
     position: fixed;
     inset: 0;
-    /* Fine fibre over slow cloud. Both tile, both are pigmented for the paper
-       they sit on (sumi on white, gofun on charcoal) and both ride the same
-       blend, so dark mode stays an alpha/pigment flip and not a second design. */
+    /* Fine fibre over a slower tileable paper cloud. */
     background-image:
         var(--grain),
         var(--washi);

@@ -14,6 +14,7 @@ const optionsSource = fs.readFileSync(path.join(projectRoot, 'options.js'), 'utf
 const popupSource = fs.readFileSync(path.join(projectRoot, 'popup.js'), 'utf8');
 const popupHtml = fs.readFileSync(path.join(projectRoot, 'popup.html'), 'utf8');
 const optionsHtml = fs.readFileSync(path.join(projectRoot, 'options.html'), 'utf8');
+const contentPageCss = fs.readFileSync(path.join(projectRoot, 'content-page.css'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(projectRoot, 'manifest.json'), 'utf8'));
 const i18nSource = fs.readFileSync(path.join(projectRoot, 'i18n.js'), 'utf8');
 const I18n = require(path.join(projectRoot, 'i18n.js'));
@@ -839,6 +840,88 @@ async function run() {
     assert.match(contentSource, /const spans = getConnectedOwnedTranslatedNodes\(\);/);
     assert.match(contentSource, /segments\.map\(seg => seg\.text\)\.join\(DELIMITER\)/);
     assert.doesNotMatch(contentSource, /join\(` \$\{DELIMITER\} `\)/);
+
+    // Switching back to source text must not retain Pointer's pre-wrap layout.
+    // The wrapper keeps only the designed dashed state mark and click behavior.
+    const displayStateFunctionSource = contentSource.match(
+        /^function applyTranslatedNodeDisplayState\([^\n]+\) \{[\s\S]*?^\}\n/m
+    );
+    assert.ok(displayStateFunctionSource, 'missing translated-node display-state helper');
+    const applyDisplayState = vm.runInNewContext(`(${displayStateFunctionSource[0]})`);
+    const classes = new Set();
+    const declarations = new Map();
+    const priorities = new Map();
+    const translatedNode = {
+        textContent: '',
+        classList: {
+            toggle(name, enabled) {
+                if (enabled) classes.add(name);
+                else classes.delete(name);
+            }
+        },
+        style: {
+            removeProperty(name) {
+                declarations.delete(name);
+                priorities.delete(name);
+            },
+            setProperty(name, value, priority = '') {
+                declarations.set(name, value);
+                priorities.set(name, priority);
+            }
+        }
+    };
+    const translatedState = {
+        originalText: 'Original  text',
+        translatedText: '译文',
+        showingOriginal: false
+    };
+
+    applyDisplayState(translatedNode, translatedState, false);
+    assert.equal(translatedNode.textContent, '译文');
+    assert.equal(declarations.get('white-space'), 'pre-wrap');
+    assert.ok(classes.has('ai-translator-highlight'));
+
+    applyDisplayState(translatedNode, translatedState, true);
+    assert.equal(translatedNode.textContent, 'Original  text');
+    assert.equal(translatedState.showingOriginal, true);
+    assert.ok(classes.has('ai-translator-original'));
+    assert.ok(!classes.has('ai-translator-highlight'));
+    assert.ok(!declarations.has('white-space'));
+    assert.ok(!declarations.has('display'));
+    assert.equal(declarations.get('all'), 'unset');
+    assert.equal(priorities.get('all'), 'important');
+    assert.equal(
+        declarations.get('border-bottom'),
+        '1px dashed var(--pointer-original-underline-color, rgba(31, 28, 25, 0.3))'
+    );
+    assert.equal(declarations.get('cursor'), 'pointer');
+    assert.equal(priorities.get('border-bottom'), 'important');
+
+    applyDisplayState(translatedNode, translatedState, false);
+    assert.equal(translatedNode.textContent, '译文');
+    assert.ok(!declarations.has('all'));
+    assert.ok(!declarations.has('border-bottom'));
+    assert.ok(!declarations.has('cursor'));
+    assert.equal(declarations.get('white-space'), 'pre-wrap');
+    assert.equal(declarations.get('display'), 'inline');
+    const originalStyleRule = contentPageCss.match(
+        /\[data-pointer-extension-owned="translation"\]\.ai-translator-original \{([\s\S]*?)\n\}/
+    );
+    assert.ok(originalStyleRule, 'missing neutral original-text style');
+    assert.match(originalStyleRule[1], /all:\s*unset\s*!important/);
+    assert.match(
+        originalStyleRule[1],
+        /--pointer-original-underline-color:\s*rgba\(31, 28, 25, 0\.3\)\s*!important/
+    );
+    assert.doesNotMatch(originalStyleRule[1], /\bwhite-space\s*:/);
+    assert.match(
+        contentPageCss,
+        /\.ai-translator-original:hover \{\s*--pointer-original-underline-color:\s*rgba\(31, 28, 25, 0\.62\)\s*!important/
+    );
+    assert.match(
+        contentPageCss,
+        /\.ai-translator-original:hover \{\s*--pointer-original-underline-color:\s*rgba\(245, 242, 237, 0\.75\)\s*!important/
+    );
     assert.match(backgroundSource, /Settings\.readResponseTextWithLimit\(/);
     assert.match(optionsSource, /Settings\.readResponseTextWithLimit\(/);
     assert.doesNotMatch(backgroundSource, /await response\.text\(\)/);

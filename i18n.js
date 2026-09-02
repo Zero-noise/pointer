@@ -1,8 +1,3 @@
-/**
- * i18n Module - Internationalization for Pointer Extension
- * Provides language management and translation functionality
- */
-
 const I18n = (function() {
     'use strict';
 
@@ -554,49 +549,25 @@ const I18n = (function() {
         }
     };
 
-    // Current language
     let currentLanguage = 'en';
 
-    /**
-     * Get all supported languages
-     * @returns {Object} Map of language codes to language info
-     */
     function getSupportedLanguages() {
         return { ...supportedLanguages };
     }
 
-    /**
-     * Get language display name
-     * @param {string} langCode - Language code
-     * @returns {string} Native name of the language
-     */
     function getLanguageDisplayName(langCode) {
         const lang = supportedLanguages[langCode];
         return lang ? lang.nativeName : langCode;
     }
 
-    /**
-     * Check if a language is supported
-     * @param {string} langCode - Language code to check
-     * @returns {boolean} True if language is supported
-     */
     function isLanguageSupported(langCode) {
         return langCode in supportedLanguages;
     }
 
-    /**
-     * Get current language
-     * @returns {string} Current language code
-     */
     function getCurrentLanguage() {
         return currentLanguage;
     }
 
-    /**
-     * Set current language
-     * @param {string} langCode - Language code to set
-     * @returns {boolean} True if successful
-     */
     function setCurrentLanguage(langCode) {
         if (isLanguageSupported(langCode)) {
             currentLanguage = langCode;
@@ -605,18 +576,7 @@ const I18n = (function() {
         return false;
     }
 
-    /**
-     * Get translation for a specific key in current language
-     * @param {string} key - Translation key
-     * @param {string} [lang] - Optional language code, defaults to current language
-     * @returns {string} Translated text or key if not found
-     */
-    // {mod} is the name of the Alt key, which is Option on a Mac. Every locale
-    // keeps ONE string with the token in it and the platform decides the word
-    // inside — the alternative, a second copy of ten strings differing by one
-    // word, would drift the moment anybody edits the phrasing. The label comes
-    // from settings.js so the options page, the key cap and the in-page toast
-    // cannot disagree; 'Alt' is the fallback if that module has not loaded.
+    // Keep one {mod} string per locale; the platform supplies Alt or Option.
     function fillPlaceholders(text) {
         if (typeof text !== 'string' || !text.includes('{mod}')) {
             return text;
@@ -632,24 +592,13 @@ const I18n = (function() {
         if (translations[lang] && translations[lang][key]) {
             return fillPlaceholders(translations[lang][key]);
         }
-        // Fallback to English
         if (lang !== 'en' && translations.en && translations.en[key]) {
             return fillPlaceholders(translations.en[key]);
         }
         return key;
     }
 
-    /**
-     * translate() plus caller-supplied placeholders, for strings whose values are
-     * only known at runtime ({key} and {chord} in the shortcut-conflict notices).
-     * Substitution is literal and one-pass — a value that happens to contain
-     * "{chord}" is never re-scanned — and an unknown key still returns the key,
-     * so a missing string is visible rather than silently blank.
-     * @param {string} key
-     * @param {Object<string,string>} [params]
-     * @param {string} [lang]
-     * @returns {string}
-     */
+    // Runtime placeholders are replaced once; unknown placeholders stay visible.
     function formatMessage(key, params, lang = currentLanguage) {
         const text = translate(key, lang);
         if (!params) return text;
@@ -657,11 +606,6 @@ const I18n = (function() {
             Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match);
     }
 
-    /**
-     * Get all translations for a specific language
-     * @param {string} [lang] - Language code, defaults to current language
-     * @returns {Object} All translations for the language
-     */
     function getTranslations(lang = currentLanguage) {
         const table = { ...(translations[lang] || translations.en) };
         for (const key of Object.keys(table)) {
@@ -670,10 +614,6 @@ const I18n = (function() {
         return table;
     }
 
-    /**
-     * Apply translations to DOM elements with data-i18n attribute
-     * @param {string} [lang] - Language code, defaults to current language
-     */
     function applyTranslations(lang = currentLanguage) {
         if (!isLanguageSupported(lang)) {
             console.warn(`Language ${lang} not supported, falling back to English`);
@@ -691,11 +631,6 @@ const I18n = (function() {
         });
     }
 
-    /**
-     * Generate language dropdown options
-     * @param {HTMLElement} container - Container element for language options
-     * @param {string} itemClassName - Class name for option items
-     */
     function generateLanguageOptions(container, itemClassName = 'custom-item') {
         if (!container) {
             console.error('Container element not provided');
@@ -713,7 +648,6 @@ const I18n = (function() {
         });
     }
 
-    // Public API
     return {
         getSupportedLanguages,
         getLanguageDisplayName,
@@ -728,7 +662,6 @@ const I18n = (function() {
     };
 })();
 
-// Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = I18n;
 }

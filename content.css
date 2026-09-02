@@ -1,30 +1,7 @@
-/* ===================================================================
-   Pointer · content.css — FAB / 硝子
+/* FAB styles. theme.css is prepended to this shadow-root sheet.
+   Design rationale lives in docs/FAB_UI_DESIGN.md. */
 
-   theme.css is fetched and prepended to this sheet inside the closed
-   shadow root, so every token below (--accent-rgb, --glass-*, --ink-*,
-   --font-sans, --sh-*) is the SAME token the popup and the options page
-   read. The ball is not "styled like" the rest of the extension; it is
-   cut from the same declared material.
-
-   Numeric fallbacks are kept on every var() so the FAB still renders
-   correctly in the one frame before theme.css lands.
-   =================================================================== */
-
-/* ===================================================================
-   FAB 按钮 — "硝子"交互模型
-
-   物理隐喻：一枚磨砂玻璃圆片贴在纸面上。
-   - 静止时完全不动
-   - 悬停 = 浮起（translateY + 阴影扩散 + 更清透）
-   - 按下 = 按入纸面（:active scale + 阴影收紧）
-   - 松开 = 弹性回弹（spring curve 自动处理，不需 JS）
-   - 激活 = 同一块玻璃被上了墨（边沿 + 滲み + 旋转墨带）
-   - 拖拽 = 拎起（高 elevation + 方向倾斜）
-   =================================================================== */
-
-/* CSS 变量：JS `applyButtonThickness()` 在 0–100 之间插值这些值
-   默认值是「薄玻璃」(slider=0)，dark mode @media 覆盖默认成深色模式版本 */
+/* JS interpolates these custom properties from the thickness setting. */
 #ai-translator-button {
     position: fixed;
     bottom: 20px;
@@ -33,8 +10,6 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    /* 0.42 / 0.40 / 0.55 = theme.css 的 --glass-chip / --glass-rim-a /
-       --glass-spec-a —— 球就是一枚圆形的 chip，和 popup 的字段同一块玻璃 */
     background: rgba(var(--glass-bg-rgb, 255, 255, 255), var(--glass-bg-a, 0.42));
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
@@ -45,7 +20,7 @@
     cursor: pointer;
     pointer-events: auto;
     z-index: 9999;
-    /* 按下用 0.1s 快速响应，松开用 0.25s spring 回弹 — 不对称时序是高级感的来源 */
+    /* Press quickly; release with the base spring timing. */
     transition:
         transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
         background 0.2s ease-out,
@@ -60,7 +35,7 @@
     transform-origin: center;
 }
 
-/* 悬停：玻璃从纸面浮起，更清透 — 在 base 变量基础上叠加 delta */
+/* Hover adds lift and opacity deltas to the base glass values. */
 #ai-translator-button:hover {
     transform: translateY(-2px);
     background: rgba(var(--glass-bg-rgb, 255, 255, 255), calc(var(--glass-bg-a, 0.42) + 0.14));
@@ -71,8 +46,7 @@
     border-color: rgba(255, 255, 255, calc(var(--glass-border-a, 0.4) + 0.15));
 }
 
-/* 按下：玻璃被按入纸面
-   快进慢出：按下 0.1s 立刻响应，松开由 base 的 0.25s spring 处理弹回 */
+/* The base transition handles the slower release after this fast press. */
 #ai-translator-button:active {
     transform: scale(0.96);
     box-shadow:
@@ -83,46 +57,28 @@
         box-shadow 0.1s ease-out;
 }
 
-/* Dark Mode — 沿用白玻璃硝子配方，只把 α 调薄
-   关键洞察：硝子不是材质切换题，是 alpha 调节题。
-   白玻璃 @ 0.35 α 叠在白纸上 → 温柔的白雾 disc；
-   白玻璃 @ 0.12 α 叠在黑纸上 → 暗炭 disc，同一块物件，只是反差缩到暗底阈值。
-   backdrop-filter blur + saturate 在任何底色上都继续是 "玻璃" 的物理来源，
-   无需靠 radial-gradient 硬画一个 fake highlight —— 顶光 specular 就由
-   1px inset 白边 + 白色细 rim 承担；两者都是物理正当的（edge-catch 高光），
-   而不是贴花。亮底的 frostA 0.34→0.46（越暗越厚）；暗底反向变薄
-   （越暗越薄），让 disc 本体不过白不发光，只是一块微微可辨的夜玻璃。 */
+/* Dark fallback before ambient sampling writes adaptive values. */
 @media (prefers-color-scheme: dark) {
     #ai-translator-button {
-        /* 薄 frost —— 在纯黑底上约 #1F1F1F 炭色 disc，不过白 */
         --glass-bg-a: 0.14;
-        /* 白 rim 极低 α —— 让边缘几乎融入背景，disc 读作自然一块，不是镶了白圈 */
         --glass-border-a: 0.10;
-        /* 1px 顶沿 specular 再收 —— 刚能辨出有"上光"即可，不要成为主视觉 */
         --glass-inset-a: 0.18;
-        /* 落影：暗底下更深更远 */
         --glass-sh1-a: 0.45;
         --glass-sh2-a: 0.25;
-        /* 拖拽时 frost 稍厚（离开黑纸 backdrop 对比失效后的补偿） */
         --glass-drag-a: 0.22;
-        /* 激活信号 fallback（JS HSP 未跑起来时）：暗底玻璃更薄、落影更黑，
-           墨要重一档才"落得实"。色相 fallback 走 theme.css 的 @media，
-           那里 --accent-rgb 已经翻成胡粉，所以采样跑起来之前也不会是黑上黑。 */
+        /* Signal fallback before ambient sampling runs. */
         --fab-signal-a: 0.72;
         --fab-glow-a: 0.20;
     }
 }
 
-/* 激活态 halo ring — 外沿一圈缓慢旋转的墨色渐变带
-   物理隐喻：玻璃本体几乎不变，激活信号由外沿旋转光带承担。
-   入场/退场非对称：入场从玻璃内侧生长出来，带轻微过冲再回落（像光带"聚焦"到位）；
-   退场向外漂散，opacity 先走，transform 稍后落定（像雾气耗散）。 */
+/* Rotating halo with asymmetric enter and exit motion. */
 @keyframes halo-rotate {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
 }
 
-/* 入场：从内侧小尺寸→过冲到略大→回落到位；opacity 在前 60% 完成 */
+/* Enter from inside, overshoot, then settle. */
 @keyframes halo-enter {
     0% {
         opacity: 0;
@@ -138,21 +94,7 @@
     }
 }
 
-/* ─── 激活态：还是那块玻璃，只是被上了墨 ─────────────────────────
-   玻璃本体（底色、blur、落影）一动不动，顶光白鳞也留着 —— 玻璃的边缘
-   高光是物理事实，不被状态覆盖。rim 仍是玻璃边沿，信号也不用额外色相，
-   因而激活前后始终是同一种材质。
-
-   信号由三样东西承担，全部是墨、全部是"画上去的"而不是"换掉的"：
-     1. 边沿 —— 白鳞之上覆一层濃墨，是上色，不是换材质
-     2. 滲み —— 软扩散的墨晕，像墨洇进纸里，没有硬边
-     3. halo —— 外沿那条旋转墨带（见下），同一支墨
-
-   墨是全局唯一的信号：popup 的开关、options 的主按钮、译文下面那条
-   下划线，和这里是同一支。α 由 JS 按环境亮度插值（暗底重一档），
-   色相同样由 JS 翻（--fab-accent-rgb：亮底濃墨 / 暗底胡粉）——
-   墨是靠"离纸多远"定义的，没法一个值跨明暗，必须跟着纸走。
-   =============================================================== */
+/* Active state overlays adaptive ink without replacing the glass base. */
 #ai-translator-button.active {
     background: rgba(var(--glass-bg-rgb, 255, 255, 255), var(--glass-bg-a, 0.42));
     backdrop-filter: blur(24px) saturate(160%);
@@ -160,25 +102,13 @@
     border: var(--glass-border-w, 1px) solid
         rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), var(--fab-signal-a, 0.42));
     box-shadow:
-        /* 落影：中性黑（物理正确），和非激活完全一致 */
         0 1px var(--glass-sh1-blur, 4px) rgba(0, 0, 0, var(--glass-sh1-a, 0.03)),
         0 var(--glass-sh2-y, 2px) var(--glass-sh2-blur, 8px) rgba(0, 0, 0, var(--glass-sh2-a, 0.02)),
-        /* 顶光白鳞：和非激活一致，玻璃质感不因状态而消失 */
         inset 0 1px 0 rgba(255, 255, 255, var(--glass-inset-a, 0.55)),
-        /* 滲み：blur 18 / spread 1，软到没有可辨的边 —— 是墨洇进纸里，
-           不是“套上去”。这一条和 popup 开关打开时的 0 0 8px 同源。
-           暗底上同一条公式画出来的是胡粉，那时它真的是一圈光晕。 */
         0 0 18px 1px rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), var(--fab-glow-a, 0.10));
 }
 
-/* Halo ring 包装层
-   默认状态 = 退场终点：opacity 0，scale(1.10) 向外漂散。
-   激活时切到 halo-enter keyframes（从 scale 0.84 过冲到 1.05 再回落到 1）。
-   关闭激活 = keyframes 失效，transition 从当前稳态 (opacity 1, scale 1)
-   回到默认 (opacity 0, scale 1.10)，所以退场轨迹是"向外漂开 + 淡出"，
-   和入场"向内收紧 + 淡入 + 过冲"完全不同 → 非对称。
-
-   opacity 比 transform 快一点（0.42s vs 0.58s），造就"光先散、形后收"的尾韵。 */
+/* Hidden state is the outward exit pose; activation runs halo-enter. */
 #ai-translator-halo {
     position: absolute;
     inset: -6px;
@@ -199,16 +129,11 @@
     display: block;
     overflow: visible;
     transform-origin: center;
-    /* 旋转常开：wrapper 的 opacity 控制可见性；
-       这样退场淡出时旋转不会冻结、不会"啪"地跳回 0°。 */
+    /* Keep rotating during fade-out to avoid snapping back to 0°. */
     animation: halo-rotate 8s linear infinite;
 }
 
-/* Halo 渐变停点：经 currentColor 中转接入信号墨。
-   —— 直接在 <stop> 上写 `stop-color: rgb(var(...))` 会撞 Chromium 老 bug，
-   CSS 变量在 <stop> 上不动态解析；通过 wrapper 的 `color` + 停点 `currentColor`
-   绕开。--fab-accent-rgb 由 JS 按底色翻（濃墨 / 胡粉），转接到 currentColor
-   之后 halo / 进度环 / 勾号自动共用同一支墨、同一时刻翻。 */
+/* currentColor keeps SVG stops tied to the adaptive ink value. */
 #ai-translator-halo {
     color: rgb(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)));
 }
@@ -225,9 +150,7 @@
     stop-opacity: 0;
 }
 
-/* 激活：用 keyframes 驱动入场（keyframes 覆盖默认的 opacity/transform，
-   结束后 forwards 把稳态钉在 100% 帧 = opacity 1 / scale 1）。
-   cubic-bezier(.2,.8,.3,1) 是平滑 ease-out，配合 55% 帧的过冲做"聚焦"感。 */
+/* forwards holds the halo at its settled active pose. */
 #ai-translator-button.active #ai-translator-halo {
     animation: halo-enter 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
@@ -237,8 +160,7 @@
     animation-play-state: paused;
 }
 
-/* 激活态悬停：和非激活悬停同一个动作（浮起 + 玻璃变清透），
-   墨边和滲み跟着加浓一档 —— 状态不变，只是离纸面更远了 */
+/* Active hover preserves the lift with a stronger ink edge. */
 #ai-translator-button.active:hover {
     transform: translateY(-2px);
     background: rgba(var(--glass-bg-rgb, 255, 255, 255), calc(var(--glass-bg-a, 0.42) + 0.14));
@@ -250,9 +172,7 @@
     border-color: rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), calc(var(--fab-signal-a, 0.42) + 0.12));
 }
 
-/* 激活态按下 — 需要比 .active 更高的 specificity 才能把 box-shadow
-   覆盖回"压扁"的版本（否则 .active 的多层落影会盖住 :active 的紧凑落影）。
-   阴影值和基础 :active 保持一致：同一块玻璃按进纸面。 */
+/* Higher specificity restores the compact pressed shadow over .active. */
 #ai-translator-button.active:active {
     transform: scale(0.96);
     box-shadow:
@@ -263,24 +183,21 @@
         box-shadow 0.1s ease-out;
 }
 
-/* ─── 拖拽：拎起玻璃 ─── */
-/* 亮底白玻璃：bg α 从 0.35 抬到 0.55（玻璃离开纸面后 frost 更显）
-   暗底薄玻璃：--glass-drag-a 改写为 0.22（薄一档、不发白） */
+/* Dragging lifts the FAB and uses the adaptive drag alpha. */
 #ai-translator-button.dragging {
-    /* 高 elevation — 大而柔的阴影表示离纸面远 */
     transform: translateY(-4px) rotate(var(--drag-tilt, 0deg));
     background: rgba(var(--glass-bg-rgb, 255, 255, 255), var(--glass-drag-a, 0.55));
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.08),
         0 20px 48px rgba(0, 0, 0, 0.04),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    /* 只过渡 transform（让倾斜平滑），left/top 直接控制位置保持即时 */
+    /* left/top stay immediate while tilt transitions smoothly. */
     transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.4, 1);
     animation: none;
     cursor: grabbing;
 }
 
-/* 深色模式拖拽：阴影更深更远，顶沿 inset 略亮 —— 玻璃被拎离黑纸面 */
+/* Dark drag fallback uses deeper shadows. */
 @media (prefers-color-scheme: dark) {
     #ai-translator-button.dragging {
         box-shadow:
@@ -290,14 +207,7 @@
     }
 }
 
-/* ─── 长按 · 蓄力清墨 ────────────────────────────────────────────
-   物理隐喻：长按 = 用印前的蓄力。玻璃微收（scale 0.94），笔迹（icon）让位，
-   墨线沿盘边线性（1s）填满一圈，最后 V 勾像印下一笔确认。
-   颜色全部走 --accent-rgb —— 和激活边沿、halo、译文下划线同一支墨。
-   =============================================================== */
-
-/* 长按基础收缩：微收比旋转染色更克制，让注意力交给环。
-   阴影和普通 :active 一致 —— 同一块玻璃被按进纸面，没有额外材质。 */
+/* Long-press progress and completion layers. */
 #ai-translator-button.long-pressing {
     transform: scale(0.94);
     transition: transform 0.12s ease-out;
@@ -306,20 +216,20 @@
         inset 0 1px 0 rgba(255, 255, 255, calc(var(--glass-inset-a, 0.55) - 0.05));
 }
 
-/* 长按中：icon 让位，环揭开 */
+/* Hide the icon while the progress ring fills. */
 #ai-translator-button.long-pressing #ai-translator-icon {
     opacity: 0;
     transform: scale(0.85);
     transition: opacity 0.18s ease-out, transform 0.25s ease-out;
 }
 
-/* 环填充期间淡化 halo，让进度环成为主角 */
+/* De-emphasize the halo while progress is visible. */
 #ai-translator-button.long-pressing #ai-translator-halo {
     opacity: 0.25;
     transition: opacity 0.2s ease-out;
 }
 
-/* ─── 进度环 · 2.2 均匀墨线，1s 匀速 0→360° ─── */
+/* One-second progress ring. */
 #ai-translator-ring {
     position: absolute;
     inset: -2px;
@@ -328,7 +238,6 @@
     pointer-events: none;
     z-index: 2;
     opacity: 0;
-    /* wrapper 走 currentColor，和 halo 同一支墨 */
     color: rgb(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)));
     transition: opacity 0.18s ease-out;
 }
@@ -344,8 +253,6 @@
 #ai-translator-ring circle {
     fill: none;
     stroke: currentColor;
-    /* 满 α 的硬墨圈是整组状态里最吵的一处 —— 收到 0.72，再补一层同色
-       drop-shadow，环就读作"边缘被点亮"，而不是"画上去的箍" */
     opacity: 0.72;
     filter: drop-shadow(0 0 2px currentColor);
     stroke-width: 1.8;
@@ -358,7 +265,6 @@
     transition: stroke-dashoffset 0s;
 }
 
-/* 触发填充：长按期间 dashoffset → 0 */
 #ai-translator-button.long-press-active #ai-translator-ring {
     opacity: 1;
     transition: opacity 0.12s ease-out;
@@ -368,7 +274,7 @@
     transition: stroke-dashoffset 1s linear;
 }
 
-/* ─── 完成勾 · 几何 V，scale 弹入 ─── */
+/* Completion check. */
 #ai-translator-check {
     position: absolute;
     inset: 0;
@@ -379,7 +285,6 @@
     justify-content: center;
     opacity: 0;
     transform: scale(0.82);
-    /* 和边沿 / 进度环同一支墨 */
     color: rgb(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)));
     transition:
         opacity 0.18s ease-out,
@@ -396,7 +301,7 @@
     transform: scale(1);
 }
 
-/* ─── 无障碍：尊重用户的动效偏好 ─── */
+/* Respect reduced-motion preferences. */
 @media (prefers-reduced-motion: reduce) {
     #ai-translator-button,
     #ai-translator-button::before {
@@ -405,21 +310,19 @@
     }
 }
 
-/* ─── 图标 — T4 Brush 手写笔体 ─── */
+/* FAB icon. */
 #ai-translator-icon {
     width: 30px;
     height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* sumi ink at 60% — JS 采样到暗底时会通过 --ink-color 翻转成 gofun */
+    /* JS flips --ink-color after sampling a dark background. */
     color: var(--ink-color, rgba(62, 58, 54, 0.6));
     transition: color 0.2s ease-out, opacity 0.2s ease-out;
     pointer-events: none;
-    /* 叠在 halo ring 之上（halo 在 z-index 0） */
     position: relative;
     z-index: 1;
-    /* 下面几条是给临时 ✓ 文字反馈用的回退样式 */
     font-size: 22px;
     font-weight: 500;
     line-height: 1;
@@ -429,9 +332,7 @@
     letter-spacing: normal !important;
 }
 
-/* SVG 图标在图标容器内居中，略小于容器——让球体留白更多，logo 更精致
-   父级 flex 居中，所以百分比缩小后会自动居中对齐
-   stroke-width / filter 过渡给激活态「浓墨」用（见下方 .active 块）*/
+/* Leave visual padding; animate only stroke weight and filter. */
 #ai-translator-icon svg {
     width: 70%;
     height: 70%;
@@ -449,21 +350,10 @@
     }
 }
 
-/* ─── 激活态图标 · 蘸得更浓一档 ──────────────────────────────────
-   非激活：T stroke 3.4 @ sumi 60%（--ink-color，HSP 按亮度翻转）——
-   这是"内容的墨"，跟着环境走。
-   激活：同一笔 T 蘸濃墨（比 --ink-color 深一档），stroke 3.4 → 3.8，
-   叠 0.4px drop-shadow。
-   形不变、只是墨浓了一档，和边沿 / halo / 进度环同声部。
-   α 固定 0.92，色相走 --fab-accent-rgb，和边沿 / halo / 进度环同一时刻
-   随底色翻 —— 球上任何时候都只有一支墨。 */
+/* Active icon uses the adaptive signal pigment and heavier stroke. */
 #ai-translator-button.active #ai-translator-icon {
     color: rgba(var(--fab-accent-rgb, var(--accent-rgb, 31, 28, 25)), 0.92);
 }
-/* ===================================================================
-   FAB / Icon
-   =================================================================== */
-
 #ai-translator-button.active #ai-translator-icon svg {
     stroke-width: 3.8;
     filter: drop-shadow(0 0 0.4px currentColor);
