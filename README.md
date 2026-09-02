@@ -1,8 +1,5 @@
 <div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="images/icon128-white.png">
-    <img src="images/icon128.png" alt="Pointer logo" width="128" height="128">
-  </picture>
+  <img src="images/icon128-universal.png" alt="Pointer logo" width="128" height="128">
 
   <h1>Pointer</h1>
 
