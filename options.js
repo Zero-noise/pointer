@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const buttonThicknessValue = document.getElementById('buttonThicknessValue');
     const uiLangSelect = document.getElementById('uiLang');
     const shortcutEnabledCheckbox = document.getElementById('shortcutEnabled');
+    const translationIdleEnabledCheckbox = document.getElementById('translationIdleEnabled');
+    const translationIdleMinutesInput = document.getElementById('translationIdleMinutes');
     const shortcutKeyBtn = document.getElementById('shortcutKeyCapture');
     const shortcutNotesRow = document.getElementById('shortcutNotesRow');
     const shortcutSiteList = document.getElementById('shortcutSiteList');
@@ -578,6 +580,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const shortcutOn = result.shortcutEnabled !== false;
+        translationIdleEnabledCheckbox.checked = result.translationIdleEnabled === true;
+        translationIdleEnabledCheckbox.disabled = false;
+        translationIdleMinutesInput.value = Settings.normalizeTranslationIdleMinutes(result.translationIdleMinutes);
+        translationIdleMinutesInput.disabled = !translationIdleEnabledCheckbox.checked;
         const shortcutCode = result.shortcutKey || 'KeyT';
         shortcutModifier = Settings.normalizeShortcutModifier(result.shortcutModifier);
         shortcutSiteOverrides = Settings.normalizeShortcutSiteOverrides(result.shortcutSiteOverrides);
@@ -585,10 +591,10 @@ document.addEventListener('DOMContentLoaded', function () {
         shortcutKeyBtn.dataset.code = shortcutCode;
         shortcutKeyBtn.textContent = formatShortcutCode(shortcutCode);
         shortcutKeyBtn.classList.toggle('is-disabled', !shortcutOn);
-        renderShortcutNotes();
 
         I18n.applyTranslations(uiLangSelect.value);
         I18n.setCurrentLanguage(uiLangSelect.value);
+        renderShortcutNotes();
 
         initializeCustomSelects();
 
@@ -601,6 +607,22 @@ document.addEventListener('DOMContentLoaded', function () {
         showVerifyStatus(`Failed to load settings: ${error.message}. Please reopen this page.`, 'error');
     }).finally(() => {
         setCredentialControlsBusy(false);
+    });
+
+    translationIdleEnabledCheckbox.addEventListener('change', async function () {
+        const enabled = this.checked;
+        translationIdleMinutesInput.disabled = !enabled;
+        try {
+            await Settings.setSync({ translationIdleEnabled: enabled });
+        } catch (error) {
+            this.checked = !enabled;
+            translationIdleMinutesInput.disabled = !this.checked;
+            console.error('Failed to save translation idle setting:', error);
+        }
+    });
+    translationIdleMinutesInput.addEventListener('change', function () {
+        if (!this.reportValidity()) return;
+        void Settings.setSync({ translationIdleMinutes: this.valueAsNumber }).catch(console.error);
     });
 
     // Update size value display live while dragging; persist only on release
@@ -701,11 +723,14 @@ document.addEventListener('DOMContentLoaded', function () {
         for (const host of hosts) {
             const mode = Settings.normalizeShortcutMode(shortcutSiteOverrides[host]);
             if (!mode) continue;
-            const chip = document.createElement('span');
+            const chip = document.createElement('div');
             chip.className = 'shortcut-site';
+            chip.setAttribute('role', 'listitem');
 
             const name = document.createElement('span');
+            name.className = 'shortcut-site-name';
             name.textContent = host;
+            name.title = host;
             chip.appendChild(name);
 
             const modeLabel = document.createElement('span');
@@ -718,8 +743,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'shortcut-site-remove';
-            remove.textContent = '\u00d7';
-            remove.title = translateOr('shortcutSiteRemove', 'Remove exception');
+            remove.textContent = translateOr('shortcutSiteRestore', 'Restore default');
+            remove.title = remove.textContent;
             remove.setAttribute('aria-label', `${remove.title}: ${host}`);
             remove.addEventListener('click', function () {
                 const next = Settings.normalizeShortcutSiteOverrides(shortcutSiteOverrides);
@@ -829,6 +854,14 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
         chrome.storage.onChanged.addListener(function (changes, areaName) {
             if (areaName !== 'sync') return;
+            if (changes.translationIdleEnabled) {
+                translationIdleEnabledCheckbox.checked = changes.translationIdleEnabled.newValue === true;
+                translationIdleMinutesInput.disabled = !translationIdleEnabledCheckbox.checked;
+            }
+            if (changes.translationIdleMinutes) {
+                translationIdleMinutesInput.value = Settings.normalizeTranslationIdleMinutes(
+                    changes.translationIdleMinutes.newValue);
+            }
             let dirty = false;
             if (changes.shortcutModifier) {
                 shortcutModifier = Settings.normalizeShortcutModifier(changes.shortcutModifier.newValue);

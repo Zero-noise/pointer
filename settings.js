@@ -2,7 +2,8 @@
     'use strict';
 
     const DEFAULT_SYNC_SETTINGS = {
-        isActive: false,
+        translationIdleEnabled: true,
+        translationIdleMinutes: 6,
         targetLang: 'zh',
         baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-4o',
@@ -37,6 +38,10 @@
     const VERIFICATION_SYNC_KEYS = ['lastVerified', 'lastVerifiedApiKeyHash', 'lastVerifiedBaseUrl'];
     const LEGACY_SYNC_KEYS = ['apiKey', 'lastVerifiedApiKey'];
     const SYNC_KEYS = [...Object.keys(DEFAULT_SYNC_SETTINGS)];
+
+    function normalizeTranslationIdleMinutes(value) {
+        return Number.isInteger(value) && value >= 1 && value <= 120 ? value : 6;
+    }
 
     function areaApi(area) {
         const storage = chrome && chrome.storage && chrome.storage[area];
@@ -943,6 +948,7 @@
 
     global.PointerSettings = {
         DEFAULT_SYNC_SETTINGS,
+        normalizeTranslationIdleMinutes,
         MODEL_CACHE_KEYS,
         MODEL_CACHE_BINDING_LOCAL_KEY,
         CREDENTIAL_BINDING_LOCAL_KEY,

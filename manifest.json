@@ -4,7 +4,8 @@
     "version": "1.0.0",
     "description": "Translate selected text on webpages using AI API",
     "permissions": [
-        "storage"
+        "storage",
+        "alarms"
     ],
     "optional_host_permissions": [
         "https://*/*",

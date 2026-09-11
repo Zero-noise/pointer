@@ -42,6 +42,8 @@ done
 # shipping a build that only breaks once installed from the store.
 node tests/security-regression.test.js
 node tests/shortcut.test.js
+node tests/fullscreen.test.js
+node tests/translation-idle.test.js
 node tests/permission-migration.test.js
 node tests/packaging.test.js
 

@@ -555,8 +555,6 @@
 
         /* Shortcut key cap. */
         .shortcut-pill {
-            height: 28px;
-            min-width: 48px;
             padding: 0 10px;
             font: inherit;
             font-family: var(--font-mono);
@@ -575,6 +573,23 @@
             align-items: center;
             justify-content: center;
         }
+        /* Keep adjacent minute and shortcut controls visually consistent. */
+        .mf.compact-control,
+        .shortcut-pill {
+            width: 60px;
+            min-width: 60px;
+            height: 28px;
+            box-sizing: border-box;
+            padding: 0 6px;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-align: center;
+            color: var(--ink-2);
+            border: 1px solid transparent;
+            border-radius: var(--r-ctl);
+        }
         .shortcut-pill:hover {
             color: var(--ink-1);
             background: var(--glass-chip-hover);
@@ -586,6 +601,7 @@
             outline-offset: 2px;
         }
         .shortcut-pill.recording {
+            width: auto;
             color: var(--accent);
             background: var(--accent-soft);
             box-shadow: 0 0 0 1px var(--accent), var(--sh-ink-1);
@@ -608,41 +624,48 @@
             padding-top: 4px;
         }
         .shortcut-sites {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
+            display: grid;
+            gap: 0;
+            border: 1px solid var(--glass-line);
+            border-radius: var(--r-ctl);
+            overflow: hidden;
         }
         .shortcut-sites:empty { display: none; }
         .shortcut-site {
-            display: inline-flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
             align-items: center;
-            gap: 8px;
-            padding: 4px 6px 4px 10px;
-            font-size: 11.5px;
-            font-family: var(--font-mono);
+            gap: 14px;
+            padding: 10px 12px;
+            font-size: 12px;
             color: var(--ink-2);
-            background: var(--glass-chip);
-            border-radius: var(--r-ctl);
-            box-shadow: var(--sh-chip);
+        }
+        .shortcut-site + .shortcut-site { border-top: 1px solid var(--glass-line); }
+        .shortcut-site-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: var(--font-mono);
         }
         .shortcut-site-mode {
-            opacity: 0.65;
-            letter-spacing: 0.03em;
+            padding: 4px 8px;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: var(--ink-2);
+            background: var(--glass-chip);
+            border-radius: 5px;
+            box-shadow: var(--sh-chip);
+            white-space: nowrap;
         }
         .shortcut-site-remove {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            padding: 0;
+            min-height: 30px;
+            padding: 4px 8px;
             font: inherit;
-            font-size: 13px;
-            line-height: 1;
-            color: var(--ink-2);
+            font-size: 11.5px;
+            color: var(--ink-3);
             background: transparent;
             border: none;
-            border-radius: 50%;
+            border-radius: 5px;
             cursor: pointer;
             transition: background var(--t-color), color var(--t-color);
         }
@@ -954,21 +977,44 @@
 
                         <div class="r">
                             <div class="r-label">
-                                <span data-i18n="labelShortcutEnabled">Keyboard Shortcut</span>
+                                <span id="translationIdleLabel" data-i18n="labelTranslationIdle">Turn off translation when idle</span>
+                                <span class="hint" id="translationIdleHint" data-i18n="hintTranslationIdle">Each translation restarts the timer across tabs. Existing translations stay.</span>
+                            </div>
+                            <div class="r-control spread">
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <input type="number" id="translationIdleMinutes" class="mf compact-control" min="1" max="120" step="1" value="6" required
+                                        aria-labelledby="translationIdleLabel translationIdleUnit" aria-describedby="translationIdleHint" disabled>
+                                    <span id="translationIdleUnit" data-i18n="unitMinutes">min</span>
+                                </div>
+                                <label class="mtoggle-wrap">
+                                    <input type="checkbox" id="translationIdleEnabled" class="mtoggle-input" aria-labelledby="translationIdleLabel" disabled>
+                                    <span class="mtoggle"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="r">
+                            <div class="r-label">
+                                <span id="shortcutLabel" data-i18n="labelShortcutEnabled">Keyboard Shortcut</span>
                                 <span class="hint" data-i18n="hintShortcutEnabled">Click to rebind; hold Alt to require Alt</span>
                             </div>
                             <div class="r-control spread">
-                                <button type="button" id="shortcutKeyCapture" class="shortcut-pill">T</button>
+                                <button type="button" id="shortcutKeyCapture" class="shortcut-pill" aria-labelledby="shortcutLabel shortcutKeyCapture">T</button>
                                 <label class="mtoggle-wrap">
-                                    <input type="checkbox" id="shortcutEnabled" class="mtoggle-input">
+                                    <input type="checkbox" id="shortcutEnabled" class="mtoggle-input" aria-labelledby="shortcutLabel">
                                     <span class="mtoggle"></span>
                                 </label>
                             </div>
                         </div>
 
                         <div class="r r-stack" id="shortcutNotesRow" hidden>
-                            <div class="shortcut-sites" id="shortcutSiteList"></div>
+                            <div class="r-label">
+                                <span id="shortcutSitesLabel" data-i18n="shortcutSitesTitle">Website exceptions</span>
+                                <span class="hint" data-i18n="shortcutSitesHint">These sites use their own shortcut setting. Restore default to follow your global shortcut.</span>
+                            </div>
+                            <div class="shortcut-sites" id="shortcutSiteList" role="list" aria-labelledby="shortcutSitesLabel"></div>
                         </div>
+
 
                     </div>
                 </section>

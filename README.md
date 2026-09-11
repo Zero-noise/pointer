@@ -21,6 +21,16 @@ text. The selection is replaced by its translation when the response comes
 back. Click a translation to switch it back to the original, or long-press the
 button to clear all of them.
 
+The button hides while webpage content (such as a video) is fullscreen and
+returns afterward, preserving translation mode. Browser window fullscreen
+alone does not hide it.
+
+Options also offers an idle timeout for translation mode (on by default,
+6 minutes, adjustable from 1 to 120 minutes). Each translation
+request restarts the timer across tabs on the same device. Translation mode is
+device-local; upgrading from the synced mode starts it off until you enable it. On expiry, the button stays available
+and existing translations remain; turn translation mode on again to continue.
+
 The button can be dragged anywhere and resized. The interface language and the
 target language are set separately. There are ten presets for each, and you can
 enter a custom language code such as `zh-Hant`.

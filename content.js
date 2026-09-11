@@ -12,7 +12,6 @@ function debugLog(...args) {
 }
 
 const CONTENT_SYNC_SETTING_KEYS = Object.freeze([
-    'isActive',
     'targetLang',
     'baseUrl',
     'model',
@@ -53,7 +52,6 @@ const Settings = (() => {
     // The API key lives in chrome.storage.local and is only ever read by the
     // background worker; the content script asks it via the hasApiKey message.
     const DEFAULT_SYNC_SETTINGS = Object.freeze({
-        isActive: false,
         targetLang: 'zh',
         baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-4o',
@@ -111,7 +109,7 @@ const Settings = (() => {
 
 // State
 
-let isActive = Settings.DEFAULT_SYNC_SETTINGS.isActive;
+let isActive = false;
 let targetLang = Settings.DEFAULT_SYNC_SETTINGS.targetLang;
 let translationButton;
 let isDragging = false;
@@ -303,6 +301,7 @@ function setupShadowDOM() {
     aiTranslatorContainer.style.setProperty('height', '0', 'important');
     aiTranslatorContainer.style.setProperty('z-index', '2147483647', 'important');
     aiTranslatorContainer.style.setProperty('pointer-events', 'none', 'important');
+    syncContentFullscreenVisibility();
     document.body.appendChild(aiTranslatorContainer);
     aiTranslatorShadow = aiTranslatorContainer.attachShadow({ mode: 'closed' });
 
@@ -326,6 +325,36 @@ function setupShadowDOM() {
     }).catch(err => console.error('Failed to load Pointer styles:', err));
 }
 
+// Content fullscreen (including an ancestor iframe) is separate from browser
+// window fullscreen. Temporarily hide the host, never change showButton or
+// isActive: toggleButtonVisibility(false) would disable translation globally.
+function syncContentFullscreenVisibility() {
+    if (!aiTranslatorContainer) return;
+    const wasHidden = aiTranslatorContainer.style.getPropertyValue('display') === 'none';
+    if (document.fullscreenElement) {
+        if (translationButton) {
+            cancelLongPress();
+            // Abandon an interrupted gesture without saving hidden/zero geometry.
+            if (isDragging) {
+                suppressSelectionAfterDrag = isActive;
+                positionButton(currentButtonPosition, currentButtonX, currentButtonY);
+            }
+            isDragging = false;
+            dragStartPending = false;
+            pressStartTime = 0;
+            buttonMoved = false;
+            longPressTriggered = false;
+            translationButton.classList.remove('dragging');
+            translationButton.style.removeProperty('--drag-tilt');
+        }
+        aiTranslatorContainer.style.setProperty('display', 'none', 'important');
+    } else if (wasHidden) {
+        aiTranslatorContainer.style.removeProperty('display');
+        keepCustomButtonInViewport();
+        _scheduleAdaptive();
+    }
+}
+
 // 等 CSS 注入完再把 FAB 放进 shadow DOM，避免首帧"无样式 → 有样式"的 transition
 // 被浏览器当作值变化而播放一遍（halo opacity 1→0、glass bg 淡入等），视觉上像一次假激活。
 function attachButtonWhenStyled() {
@@ -333,6 +362,7 @@ function attachButtonWhenStyled() {
     // 真正挂载前再确认一次，避免排队的 append 覆盖用户的隐藏操作
     const append = () => {
         if (!showButton) return;
+        syncContentFullscreenVisibility();
         aiTranslatorShadow.appendChild(translationButton);
     };
     if (cssLoadedPromise) {
@@ -632,6 +662,8 @@ async function downgradeShortcutForThisSite() {
 // Initialize extension — shortcut.test.js uses this marker to isolate shortcut helpers.
 function initializeExtension() {
     setupShadowDOM();
+    document.addEventListener('fullscreenchange', syncContentFullscreenVisibility, true);
+    window.addEventListener('pageshow', syncContentFullscreenVisibility);
     // Warm the localized tooltip. Fire-and-forget: spans created before it
     // lands carry the English default and are retitled when it arrives.
     void refreshToggleTooltipText();
@@ -722,19 +754,14 @@ function initializeExtension() {
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
 
-        void Settings.getSync(['isActive', 'targetLang', 'shortcutEnabled', 'shortcutKey',
+        void Settings.getSync(['targetLang', 'shortcutEnabled', 'shortcutKey',
             'shortcutModifier', 'shortcutSiteOverrides'], true)
             .then((result) => {
-                isActive = result.isActive || false;
                 targetLang = result.targetLang || 'zh';
                 shortcutEnabled = result.shortcutEnabled !== false;
                 shortcutKey = result.shortcutKey || 'KeyT';
                 shortcutModifier = result.shortcutModifier === 'alt' ? 'alt' : 'none';
                 shortcutSiteOverrides = normalizeShortcutSiteOverrides(result.shortcutSiteOverrides);
-
-                if (isActive) {
-                    activateTranslationMode();
-                }
             })
             .catch((error) => {
                 console.error('Error activating translation mode:', error);
@@ -743,12 +770,13 @@ function initializeExtension() {
         console.error('Error checking translation mode status:', error);
     }
 
-    // No inbound message listener on purpose. Every cross-surface signal Pointer
-    // needs — activation, target language, button visibility — is a sync-storage
-    // key, and the listener below already reacts to all of them in every tab at
-    // once. The popup sends no parallel chrome.tabs messages; keeping receivers
-    // for messages no current surface sends would only widen the content script's
-    // surface.
+    chrome.runtime.onMessage.addListener((message, sender) => {
+        if (sender.id === chrome.runtime.id && message?.action === 'translationModeChanged') {
+            void refreshTranslationMode();
+        }
+    });
+    void refreshTranslationMode();
+    window.addEventListener('pageshow', refreshTranslationMode);
 
     try {
         if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
@@ -757,15 +785,6 @@ function initializeExtension() {
             if (namespace === 'sync') {
                 if (changes.targetLang) {
                     targetLang = changes.targetLang.newValue || 'zh';
-                }
-
-                if (changes.isActive) {
-                    const shouldActivate = !!changes.isActive.newValue;
-                    if (shouldActivate && !isActive) {
-                        activateTranslationMode();
-                    } else if (!shouldActivate && isActive) {
-                        deactivateTranslationMode();
-                    }
                 }
 
                 if (changes.buttonSize && changes.buttonSize.newValue) {
@@ -1099,12 +1118,52 @@ function stopDragging() {
 
 // FAB / Interaction
 
+function requestTranslationMode(request) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(request, response => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+            } else if (typeof response?.isActive !== 'boolean') {
+                reject(new Error(response?.error || 'Translation mode unavailable'));
+            } else {
+                resolve(response.isActive);
+            }
+        });
+    });
+}
+
+let translationModeReadRevision = 0;
+async function refreshTranslationMode() {
+    const revision = ++translationModeReadRevision;
+    try {
+        const active = await requestTranslationMode({ action: 'getTranslationMode' });
+        if (revision !== translationModeReadRevision) return;
+        if (active) activateTranslationMode();
+        else deactivateTranslationMode();
+    } catch (error) {
+        console.error('Failed to read translation mode:', error);
+    }
+}
+
+async function setTranslationMode({ isActive: active }) {
+    const revision = ++translationModeReadRevision;
+    try {
+        const saved = await requestTranslationMode({ action: 'setTranslationMode', isActive: active });
+        if (revision !== translationModeReadRevision) return;
+        if (saved) activateTranslationMode();
+        else deactivateTranslationMode();
+    } catch (error) {
+        console.error('Failed to save translation mode:', error);
+        void refreshTranslationMode();
+    }
+}
+
 function toggleTranslationMode() {
     if (isActive) {
         deactivateTranslationMode();
         try {
             if (!isChromeAPIAvailable()) throw new Error('Chrome API not available');
-            void Settings.setSync({ isActive: false });
+            void setTranslationMode({ isActive: false });
         } catch (error) {
             console.error('Error saving translation mode state:', error);
         }
@@ -1116,8 +1175,9 @@ function toggleTranslationMode() {
             void ensureApiKeyConfigured().then((hasKey) => {
                 if (!hasKey) return;
 
-                activateTranslationMode();
-                void Settings.setSync({ isActive: true });
+                // Enable selection only after the worker has saved the mode, so
+                // the first request cannot race the authoritative inactive check.
+                void setTranslationMode({ isActive: true });
             }).catch((error) => {
                 console.error('Error activating translation mode:', error);
             });
@@ -1239,7 +1299,7 @@ async function handleTextSelection(event) {
         console.error('AI Translator: API key precheck failed:', error);
         return false;
     });
-    if (!hasApiKey) {
+    if (!hasApiKey || !isActive) {
         return;
     }
 
@@ -2700,7 +2760,7 @@ function toggleButtonVisibility(show) {
         if (isActive) {
             deactivateTranslationMode();
             if (isChromeAPIAvailable()) {
-                void Settings.setSync({ isActive: false });
+                void setTranslationMode({ isActive: false });
             }
         }
     }
@@ -2891,7 +2951,7 @@ function _computeAdaptiveTokens(r, g, b) {
 }
 
 function applyAdaptiveFAB() {
-    if (!translationButton) return;
+    if (!translationButton || document.fullscreenElement) return;
     const sample = _sampleAmbientBehindFAB();
     if (!sample) return;
     const [r, g, b] = sample;
@@ -2924,6 +2984,7 @@ function ensureUiStillMounted() {
 
     if (aiTranslatorContainer && !aiTranslatorContainer.isConnected) {
         // shadow root 跟随宿主元素，重挂宿主即恢复整棵 UI 树
+        syncContentFullscreenVisibility();
         document.body.appendChild(aiTranslatorContainer);
         if (showButton && translationButton && !translationButton.isConnected) {
             attachButtonWhenStyled();

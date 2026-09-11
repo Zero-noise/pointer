@@ -82,7 +82,7 @@ async function createBackgroundHarness() {
     };
     const accessLog = [];
     const syncArea = createStorageArea({ baseUrl, model: 'test-model' }, accessLog);
-    const localArea = createStorageArea({ apiKey, credentialBinding: binding }, accessLog);
+    const localArea = createStorageArea({ apiKey, credentialBinding: binding, isActive: true }, accessLog);
     const messageListeners = [];
     let fetchCount = 0;
     let activeFetches = 0;
@@ -148,6 +148,7 @@ async function createBackgroundHarness() {
     });
 
     context.chrome = {
+        alarms: { clear: async () => true, create: async () => {}, onAlarm: { addListener() {} } },
         action: { setIcon(_options, callback) { callback(); } },
         permissions: {
             contains(options, callback) {
@@ -167,6 +168,7 @@ async function createBackgroundHarness() {
             onMessage: { addListener(listener) { messageListeners.push(listener); } }
         },
         storage: {
+            onChanged: { addListener() {} },
             local: localArea,
             sync: syncArea
         }
@@ -822,10 +824,39 @@ async function run() {
         { 'ok.example': 'off' }
     );
 
-    // ——— content.js no longer receives messages ———
-    // popup.js lost chrome.tabs, so nothing sends these; receivers for messages
-    // with no sender are surface without a purpose.
-    assert.doesNotMatch(contentSource, /chrome\.runtime\.onMessage\.addListener/);
+    const modeHarness = await createBackgroundHarness();
+    delete modeHarness.localArea.state.isActive;
+    modeHarness.syncArea.state.isActive = true;
+    let modeReply = await modeHarness.dispatch({ action: 'getTranslationMode' });
+    assert.deepEqual(JSON.parse(JSON.stringify(modeReply.response)), { isActive: false });
+    modeReply = await modeHarness.dispatch({ action: 'setTranslationMode', isActive: true });
+    assert.equal(modeReply.response.isActive, true);
+    assert.equal(modeHarness.localArea.state.isActive, true);
+    modeHarness.syncArea.state.isActive = false;
+    modeReply = await modeHarness.dispatch({ action: 'getTranslationMode' });
+    assert.equal(modeReply.response.isActive, true, 'remote synced mode is ignored');
+    modeReply = await modeHarness.dispatch({ action: 'setTranslationMode', isActive: 'false' });
+    assert.ok(modeReply.response.error);
+    assert.equal(modeHarness.localArea.state.isActive, true);
+    modeReply = await modeHarness.dispatch({ action: 'setTranslationMode', isActive: false }, 1, 'foreign');
+    assert.equal(modeReply.response, undefined);
+    assert.equal(modeHarness.localArea.state.isActive, true);
+    modeReply = await modeHarness.dispatchFromExtensionPage({ action: 'getTranslationMode' });
+    assert.equal(modeReply.response, undefined);
+
+    const inactiveHarness = await createBackgroundHarness();
+    inactiveHarness.localArea.state.isActive = false;
+    const inactiveReply = await inactiveHarness.dispatch({ action: 'translate', text: ['hello'], targetLang: 'zh' });
+    assert.equal(inactiveReply.response.errorCode, 'TRANSLATION_INACTIVE');
+    assert.equal(inactiveHarness.fetchCount, 0, 'stale active tab cannot call API after shutoff');
+    await inactiveHarness.dispatch({ action: 'setTranslationMode', isActive: true });
+    const activeReply = await inactiveHarness.dispatch({ action: 'translate', text: ['hello'], targetLang: 'zh' });
+    assert.ok(activeReply.response.translations);
+    assert.equal(inactiveHarness.fetchCount, 1, 'first translation after acknowledged enable succeeds');
+
+    // Mode invalidations are the only inbound signal; credentials remain private.
+    assert.match(contentSource, /sender.id === chrome.runtime.id && message\?\.action === 'translationModeChanged'/);
+    assert.doesNotMatch(contentSource, /chrome\.storage\.local\.(get|set)/);
     for (const deadAction of ['activate', 'deactivate', 'toggleButtonVisibility']) {
         assert.doesNotMatch(
             contentSource,
@@ -933,9 +964,13 @@ async function run() {
     assert.match(optionsSource, /chrome\.permissions\.remove\(/);
     assert.match(popupSource, /window\.addEventListener\('pagehide', flushCustomLanguageSave\)/);
     assert.match(popupSource, /document\.visibilityState === 'hidden'/);
-    assert.deepEqual(manifest.permissions, ['storage']);
+    assert.deepEqual(manifest.permissions, ['storage', 'alarms']);
     assert.deepEqual(manifest.optional_host_permissions, ['https://*/*', 'http://*/*']);
-    assert.doesNotMatch(backgroundSource, /chrome\.tabs\.|chrome\.windows\./);
+    assert.doesNotMatch(backgroundSource, /chrome\.windows\./);
+    const allowedTabMethods = new Set(['query', 'sendMessage']);
+    for (const match of backgroundSource.matchAll(/chrome\.tabs\.(\w+)/g)) {
+        assert.ok(allowedTabMethods.has(match[1]), `Unexpected tabs API: ${match[1]}`);
+    }
     assert.doesNotMatch(popupSource, /chrome\.tabs\./);
     assert.doesNotMatch(popupHtml, /id="targetLang"|popup-shim\.js/);
     assert.doesNotMatch(optionsHtml, /options-shim\.js/);

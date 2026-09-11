@@ -74,6 +74,92 @@ async function waitForSecureLocalState() {
     await secureLocalStateReady;
 }
 
+// One device-local deadline for the shared translation mode, not one timer per
+// tab. Persist activity so worker suspension/restarts never grant a fresh lease.
+const TRANSLATION_IDLE_ALARM = 'pointer-translation-idle';
+const TRANSLATION_ACTIVITY_KEY = 'translationLastActivityAt';
+let translationIdleQueue = Promise.resolve();
+let translationIdleRevision = 0;
+
+function updateTranslationIdle(reset = false) {
+    const revision = ++translationIdleRevision;
+    const activityAt = Date.now();
+    translationIdleQueue = translationIdleQueue.then(async () => {
+        await waitForSecureLocalState();
+        const settings = await Settings.getSync([
+            'translationIdleEnabled', 'translationIdleMinutes'
+        ], true);
+        const stored = await Settings.getLocal(['isActive', TRANSLATION_ACTIVITY_KEY]);
+        if (stored.isActive !== true || settings.translationIdleEnabled !== true) {
+            await chrome.alarms.clear(TRANSLATION_IDLE_ALARM);
+            await Settings.removeLocal([TRANSLATION_ACTIVITY_KEY]);
+            return;
+        }
+        let lastActivity = stored[TRANSLATION_ACTIVITY_KEY];
+        if (reset || !Number.isFinite(lastActivity) || lastActivity <= 0 || lastActivity > Date.now()) {
+            lastActivity = activityAt;
+            await Settings.setLocal({ [TRANSLATION_ACTIVITY_KEY]: lastActivity });
+        }
+        const deadline = lastActivity + Settings.normalizeTranslationIdleMinutes(
+            settings.translationIdleMinutes
+        ) * 60_000;
+        // A translation or settings change arriving during storage I/O wins
+        // over an old expiry. Its queued operation will refresh the alarm.
+        if (revision !== translationIdleRevision) return;
+        if (Date.now() >= deadline) {
+            await Settings.setLocal({ isActive: false });
+            await chrome.alarms.clear(TRANSLATION_IDLE_ALARM);
+            await Settings.removeLocal([TRANSLATION_ACTIVITY_KEY]);
+        } else {
+            await chrome.alarms.create(TRANSLATION_IDLE_ALARM, { when: deadline });
+        }
+    }).catch(error => console.error('Failed to update translation idle timer:', error));
+    return translationIdleQueue;
+}
+
+chrome.alarms.onAlarm.addListener(alarm => {
+    if (alarm.name === TRANSLATION_IDLE_ALARM) void updateTranslationIdle();
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.isActive) {
+        void updateTranslationIdle(changes.isActive.newValue === true);
+        // Local storage also holds credentials and stays trusted-context-only.
+        // Send only an invalidation; tabs fetch the latest mode from the worker.
+        void notifyTranslationModeChanged();
+    } else if (area === 'sync' && (changes.translationIdleEnabled || changes.translationIdleMinutes)) {
+        void updateTranslationIdle(changes.translationIdleEnabled?.newValue === true);
+    }
+});
+void updateTranslationIdle();
+
+async function notifyTranslationModeChanged() {
+    try {
+        const tabs = await chrome.tabs.query({});
+        await Promise.all(tabs.filter(tab => Number.isInteger(tab.id)).map(tab =>
+            chrome.tabs.sendMessage(tab.id, { action: 'translationModeChanged' }).catch(error => {
+                // Restricted pages and unloaded tabs normally have no content script.
+                if (error?.message === 'Could not establish connection. Receiving end does not exist.') return;
+                console.error('Failed to notify translation mode change in tab:', tab.id, error);
+            })
+        ));
+    } catch (error) {
+        console.error('Failed to notify translation mode change:', error);
+    }
+}
+
+async function handleTranslationModeRequest(request) {
+    await waitForSecureLocalState();
+    if (request.action === 'setTranslationMode') {
+        if (typeof request.isActive !== 'boolean') {
+            throw createRequestError('INVALID_REQUEST', 'Translation mode must be a boolean');
+        }
+        await Settings.setLocal({ isActive: request.isActive });
+    }
+    const stored = await Settings.getLocal(['isActive']);
+    // Ignore legacy sync.isActive: another device must never activate this one.
+    return { isActive: stored.isActive === true };
+}
+
 function openOptionsPage() {
     chrome.runtime.openOptionsPage(() => {
         void chrome.runtime.lastError;
@@ -112,6 +198,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return false;
     }
 
+    if (request.action === 'getTranslationMode' || request.action === 'setTranslationMode') {
+        if (!isContentScriptSender(sender)) return false;
+        handleTranslationModeRequest(request)
+            .then(sendResponse)
+            .catch(error => sendMessageError(sendResponse, error));
+        return true;
+    }
     if (request.action === 'translate') {
         if (!isContentScriptSender(sender)) {
             sendMessageError(sendResponse, createRequestError(
@@ -438,7 +531,15 @@ async function handleTranslateRequest(request, sender, sendResponse) {
     try {
         const { textSegments, targetLang, totalChars } = validateTranslationRequest(request);
         const apiConfig = await getVerifiedApiConfiguration();
+        // A missed tab notification must not let new requests bypass idle shutoff.
+        const { isActive } = await Settings.getLocal(['isActive']);
+        if (isActive !== true) {
+            throw createRequestError('TRANSLATION_INACTIVE', 'Translation mode is off. Turn it on to translate.');
+        }
         consumeTranslationRateLimit(sender.tab.id, textSegments.length, totalChars);
+        // Only accepted translation requests count as use, never mouse movement
+        // or a page claiming to be active. Timer failures must not block the API.
+        void updateTranslationIdle(true);
 
         const translations = await mapWithConcurrencyLimit(
             textSegments,
